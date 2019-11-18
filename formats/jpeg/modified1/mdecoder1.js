@@ -80,7 +80,7 @@ const buildComponentData = (frame, component) => {
   //   "Practical Fast 1-D DCT Algorithms with 11 Multiplications",
   //   IEEE Intl. Conf. on Acoustics, Speech & Signal Processing, 1989,
   //   988-991.
-  function quantizeAndInverse(zz, dataOut, dataIn) {
+  const quantizeAndInverse = (zz, dataOut, dataIn) => {
     const qt = component.quantizationTable;
     let v0, v1, v2, v3, v4, v5, v6, v7, t;
     
@@ -296,6 +296,8 @@ const buildHuffmanTable = (codeLengths, values) => {
       p = q;
     }
   }
+  //console.log('HT code', code);
+  //console.log('HT res code[0].children', code[0].children);
   return code[0].children;
 }
 
@@ -329,7 +331,7 @@ const decodeScan = (data, offset,
       return (bitsData >> bitsCount) & 1;
     }
     bitsData = data[offset++];
-    if (bitsData == 0xFF) {
+    if (bitsData === 0xFF) {
       const nextByte = data[offset++];
       if (nextByte) {
         throw new Error("unexpected marker: " + ((bitsData << 8) | nextByte).toString(16));
@@ -341,8 +343,7 @@ const decodeScan = (data, offset,
   }
 
   const decodeHuffman = tree => {
-    let node = tree,
-      bit;
+    let node = tree, bit;
     while ((bit = readBit()) !== null) {
       node = node[bit];
       if (typeof node === 'number')
@@ -430,12 +431,10 @@ const decodeScan = (data, offset,
       k++;
     }
   }
-  let successiveACState = 0,
-    successiveACNextValue;
+  let successiveACState = 0, successiveACNextValue;
 
-  function decodeACSuccessive(component, zz) {
-    const k = spectralStart,
-      e = spectralEnd;
+  const decodeACSuccessive = (component, zz) => {
+    const k = spectralStart, e = spectralEnd;
     let r = 0, z, direction, rs, s;
     while (k <= e) {
       z = dctZigZag[k];
@@ -467,7 +466,7 @@ const decodeScan = (data, offset,
           else {
             //r--;
             if (--r === 0)
-              successiveACState = successiveACState == 2 ? 3 : 0;
+              successiveACState = successiveACState === 2 ? 3 : 0;
           }
           break;
         case 3: // set value for a zero item
@@ -534,8 +533,8 @@ const decodeScan = (data, offset,
     if (componentsLength === 1) {
       component = components[0];
       for (n = 0; n < resetInterval; n++) {
-        decodeBlock(component, decodeFn, mcu);
-        mcu++;
+        decodeBlock(component, decodeFn, mcu++);
+        //mcu++;
       }
     } else {
       for (n = 0; n < resetInterval; n++) {
@@ -554,7 +553,6 @@ const decodeScan = (data, offset,
         if (++mcu === mcuExpected) break;
       }
     }
-
     // find marker
     bitsCount = 0;
     marker = (data[offset] << 8) | data[offset + 1];
@@ -583,6 +581,7 @@ const decodeScan = (data, offset,
 const prepareFrameComponents = (frame) => {
   let maxH = 0, maxV = 0;
   let component, componentId;
+  let row;
   for (componentId in frame.components) {
     if (frame.components.hasOwnProperty(componentId)) {
       component = frame.components[componentId];
@@ -595,12 +594,12 @@ const prepareFrameComponents = (frame) => {
   for (componentId in frame.components) {
     if (frame.components.hasOwnProperty(componentId)) {
       component = frame.components[componentId];
-      const blocksPerLine = Math.ceil(Math.ceil(frame.samplesPerLine / 8) * component.h / maxH);
-      const blocksPerColumn = Math.ceil(Math.ceil(frame.scanLines / 8) * component.v / maxV);
+      //const blocksPerLine = Math.ceil(Math.ceil(frame.samplesPerLine / 8) * component.h / maxH);
+      //const blocksPerColumn = Math.ceil(Math.ceil(frame.scanLines / 8) * component.v / maxV);
       const blocksPerLineForMcu = mcusPerLine * component.h;
       const blocksPerColumnForMcu = mcusPerColumn * component.v;
       const blocks = [];
-      let row;
+      //let row;
       //let i, j;
       for (i = 0; i < blocksPerColumnForMcu; i++) {
         row = [];
@@ -608,8 +607,8 @@ const prepareFrameComponents = (frame) => {
           row.push(new Int32Array(64));
         blocks.push(row);
       }
-      component.blocksPerLine = blocksPerLine;
-      component.blocksPerColumn = blocksPerColumn;
+      component.blocksPerLine = Math.ceil(Math.ceil(frame.samplesPerLine / 8) * component.h / maxH);
+      component.blocksPerColumn = Math.ceil(Math.ceil(frame.scanLines / 8) * component.v / maxV);
       component.blocks = blocks;
     }
   }
@@ -622,9 +621,12 @@ const prepareFrameComponents = (frame) => {
 // Just adding this in, pushing to repo now before (output) events are added.
 class JpegImage extends Evented_Class{
   constructor() {
-
+    super();
   }
   parse(data) {
+    // Start parsing data event...
+    //  Data at the moment is the whole buffer for the moment though.
+    // Need to be able to parse a stream, and returning events will help with this too.
     let offset = 0 | 0;
     const length = data.length;
     let i, j, l, z, cp;
@@ -632,6 +634,8 @@ class JpegImage extends Evented_Class{
     let frame, resetInterval;
     const quantizationTables = [], frames = [];
     const huffmanTablesAC = [], huffmanTablesDC = [];
+
+    //const raise = this.raise;
 
     const readUint16 = () => (data[offset++] << 8) | data[offset++];
     const readDataBlock = () => {
@@ -646,7 +650,7 @@ class JpegImage extends Evented_Class{
     let pixels = null;
     
     let fileMarker = readUint16();
-    if (fileMarker != 0xFFD8) { // SOI (Start of Image)
+    if (fileMarker !== 0xFFD8) { // SOI (Start of Image)
       throw new Error("SOI not found");
     }
 
@@ -675,6 +679,11 @@ class JpegImage extends Evented_Class{
         case 0xFFFE: // COM (Comment)
           const appData = readDataBlock();
 
+          this.raise('decode', {
+            name: 'read-data-block',
+            value: appData
+          });
+
           if (fileMarker === 0xFFE0) {
             if (appData[0] === 0x4A && appData[1] === 0x46 && appData[2] === 0x49 &&
               appData[3] === 0x46 && appData[4] === 0) { // 'JFIF\x00'
@@ -690,6 +699,11 @@ class JpegImage extends Evented_Class{
                 thumbHeight: appData[13],
                 thumbData: appData.subarray(14, 14 + 3 * appData[12] * appData[13])
               };
+              //console.log('jfif', jfif);
+              this.raise('decode', {
+                name: 'JFIF',
+                value: jfif
+              });
             }
           }
           // TODO APP1 - Exif
@@ -702,6 +716,10 @@ class JpegImage extends Evented_Class{
                 flags1: (appData[9] << 8) | appData[10],
                 transformCode: appData[11]
               };
+              this.raise('decode', {
+                name: 'Adobe',
+                value: adobe
+              });
             }
           }
           break;
@@ -727,12 +745,17 @@ class JpegImage extends Evented_Class{
               throw new Error("DQT: invalid table spec");
             quantizationTables[quantizationTableSpec & 15] = tableData;
           }
+          this.raise('decode', {
+            name: 'DQT',
+            length: quantizationTablesLength,
+            quantizationTables: quantizationTables
+          });
           break;
 
         case 0xFFC0: // SOF0 (Start of Frame, Baseline DCT)
         case 0xFFC1: // SOF1 (Start of Frame, Extended DCT)
         case 0xFFC2: // SOF2 (Start of Frame, Progressive DCT)
-          readUint16(); // skip data length
+          const frameLength = readUint16(); // skip data length
           frame = {
             extended: (fileMarker === 0xFFC1),
             progressive: (fileMarker === 0xFFC2),
@@ -771,37 +794,103 @@ class JpegImage extends Evented_Class{
           }
           prepareFrameComponents(frame);
           frames.push(frame);
+
+          this.raise('decode', {
+            name: 'SOF2',
+            value: frame,
+            length: frameLength,
+            componentsCount: componentsCount
+          });
+
           break;
 
         case 0xFFC4: // DHT (Define Huffman Tables)
+          // read_DHT_Block?
+          //  try adapting the more general parsing system to this?
+          //  vice versa - try adapting this to the more general purpose parsing.
+
           const huffmanLength = readUint16();
+          console.log('huffmanLength', huffmanLength);
+
+          // Not exactly sure here!!!...
+
+          const array_huffman_block = data.subarray(offset + 2, offset + huffmanLength - 2);
+          
+          // 
+
           //let j;
           let codeLengthSum = 0;
+          let huffmanTableSpec, codeLengths, huffmanValues;
+
+          let c_tables_decoded = 0;
+
+          // Pre decode DHT here???
+
+
+
           for (i = 2; i < huffmanLength;) {
-            const huffmanTableSpec = data[offset++];
-            const codeLengths = new Uint8Array(16);
+            huffmanTableSpec = data[offset++];
+            codeLengths = new Uint8Array(16);
             codeLengthSum = 0;
             //let j;
             for (j = 0; j < 16; j++, offset++)
               codeLengthSum += (codeLengths[j] = data[offset]);
-            const huffmanValues = new Uint8Array(codeLengthSum);
+            huffmanValues = new Uint8Array(codeLengthSum);
             for (j = 0; j < codeLengthSum; j++, offset++)
               huffmanValues[j] = data[offset];
             i += 17 + codeLengthSum;
+            console.log('i', i);
+            console.log('codeLengths', codeLengths);
+            console.log('codeLengthSum', codeLengthSum);
+            console.log('huffmanValues', huffmanValues);
 
-            ((huffmanTableSpec >> 4) === 0 ? huffmanTablesDC : huffmanTablesAC)[huffmanTableSpec & 15] = buildHuffmanTable(codeLengths, huffmanValues);
+            console.log('huffmanValues.length', huffmanValues.length);
+            console.log('huffmanValues.length * 8', huffmanValues.length * 8);
+
+            const huffman_table = buildHuffmanTable(codeLengths, huffmanValues);
+            c_tables_decoded++;
+
+            this.raise('decode', {
+              name: 'DHT-huffman-table',
+              lengths: codeLengths,
+              values: huffmanValues,
+              huffman_table: huffman_table,
+              lengths_sum: codeLengthSum//,
+              //encoded: array_huffman_block
+            });
+
+            //console.log('huffman_table', huffman_table);
+            //console.log('huffman_table', JSON.stringify(huffman_table, null, 4));
+
+            // Will do more separate / external / specific work on the Huffman trees (again).
+
+            ((huffmanTableSpec >> 4) === 0 ? huffmanTablesDC : huffmanTablesAC)[huffmanTableSpec & 15] = huffman_table;
           }
+          this.raise('decode', {
+            encoded_ht: array_huffman_block,
+            c_tables_decoded: c_tables_decoded,
+            name: 'DHT',
+            data: array_huffman_block,
+            length: huffmanLength,
+            huffmanTablesDC: huffmanTablesDC,
+            huffmanTablesAC: huffmanTablesAC//,
+            //codeLengthSum: codeLengthSum
+          });
           break;
 
         case 0xFFDD: // DRI (Define Restart Interval)
           readUint16(); // skip data length
           resetInterval = readUint16();
+          this.raise('decode', {
+            name: 'DRI',
+            value: resetInterval//,
+            //codeLengthSum: codeLengthSum
+          });
           break;
 
         case 0xFFDA: // SOS (Start of Scan)
           //var scanLength = readUint16();
-          readUint16(); // skip data length
-
+          const scanLength = readUint16(); // skip data length
           const selectorsCount = data[offset++];
           const components = [];
           let component, tableSpec;
@@ -822,13 +911,27 @@ class JpegImage extends Evented_Class{
             spectralStart, spectralEnd,
             successiveApproximation >> 4, successiveApproximation & 15);
           offset += processed;
-
           */
 
-          offset += decodeScan(data, offset,
-            frame, components, resetInterval,
-            spectralStart, spectralEnd,
-            successiveApproximation >> 4, successiveApproximation & 15);
+          this.raise('decode', {
+            name: 'SOS',
+            selectorsCount: selectorsCount,
+            spectralStart: spectralStart,
+            spectralEnd: spectralEnd,
+            successiveApproximation: successiveApproximation,
+            scanLength: scanLength
+            //,
+            //codeLengthSum: codeLengthSum
+          });
+          // The decode scanning as a stream listener would be useful.
+          //  Stream listening other parts are / seem less important.
+
+          const decode_scan_length = decodeScan(data, offset, frame, components, resetInterval, spectralStart, spectralEnd, successiveApproximation >> 4, successiveApproximation & 15);
+          
+          console.log('decode_scan_length', decode_scan_length);
+          console.log('1) offset', offset);
+          offset += decode_scan_length;
+          console.log('2) offset', offset);
           break;
 
         case 0xFFFF: // Fill bytes
@@ -838,8 +941,7 @@ class JpegImage extends Evented_Class{
           break;
 
         default:
-          if (data[offset - 3] === 0xFF &&
-            data[offset - 2] >= 0xC0 && data[offset - 2] <= 0xFE) {
+          if (data[offset - 3] === 0xFF && data[offset - 2] >= 0xC0 && data[offset - 2] <= 0xFE) {
             // could be incorrect encoding -- last 0xFF byte of the previous
             // block was eaten by the encoder
             offset -= 3;
@@ -849,7 +951,7 @@ class JpegImage extends Evented_Class{
       }
       fileMarker = readUint16();
     }
-    if (frames.length != 1)
+    if (frames.length !== 1)
       throw new Error("only single frame JPEGs supported");
 
     // set each frame's components quantization table
@@ -1159,6 +1261,11 @@ const decode = (jpegData, opts = {
 
   const arr = new Uint8Array(jpegData);
   const decoder = new JpegImage();
+
+  decoder.on('decode', evt_decode => {
+    console.log('evt_decode', evt_decode);
+  })
+
   decoder.parse(arr);
 
   // The JpegImage could raise events.

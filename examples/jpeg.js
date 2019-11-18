@@ -91,15 +91,12 @@ const run_examples = (gfx_server, erte_ale, westminster_bridge) => obs((next, co
 
             performance.mark('A');
             const obs_decode_erte_ale = polycodec.decode(s_in);
-            
-
-            console.log('obs_decode_erte_ale', obs_decode_erte_ale);
 
             obs_decode_erte_ale.on('next', data => {
                 // Decoder has reached a specific point...
                 
 
-                console.log('decode erte ale data:', data);
+                console.log('decode jpeg data:', data);
             });
 
             obs_decode_erte_ale.on('complete', () => {

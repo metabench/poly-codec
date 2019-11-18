@@ -17,51 +17,429 @@ EOI	FF D9	End of Image
 
 
 
+
+Binary_Object_Definition: Binary_Object_Definition,
+    Binary_Object_Native_Type_Definition: Binary_Object_Native_Type_Definition,
+    BOD_Ui8: BOD_Ui8,
+    BOD_Ui16: BOD_Ui16,
+    BOD_String: BOD_String,
+    BOD_Utf8_String: BOD_Utf8_String,
+    Binary_Object_Segment_Definition: Binary_Object_Segment_Definition
+
+
 */
 
 // Want parts / definitions such as SOI.
 //  Be able to say parts are optional.
 
+/*
+
+
+const jpeg_consts = {
+    arr_jpeg_section_names: arr_jpeg_section_names,
+    dctZigZag: dctZigZag
+}
+
+*/
+
+const {arr_jpeg_section_names, dctZigZag} = require('./consts');
+const jpeg_rs_scan = require('./rs-scan');
+const {fn_parse_from_oo_type_def, parse_binary_by_type, read_ui16} = require('../../../parse');
+// Another function / file for escape???
+
+// ASCII string?
+const {Binary_Object_Segment_Definition, BOD_Ui8, BOD_Ui16, BOD_Ui8_Array, BOD_Ui16_Array, BOD_Ascii_String, BOD_Utf8_String, BOD_Buffer} = require('../../../math/binary-object-definition');
 
 // Simple definition of the parts and arrangements for different files will work well.
 //  Assumption of streaming / raising events for the output rather than buffering.
 
-const range = (i1, i2) => {
-    const res = [];
-    for(i = i1; i < i2; i++) {
-        res.push(i);
-    }
-    return res;
+// Different depths (indexed with an int?) for each level of parsing?
+
+// Reading parts....
+//  But for the moment the main thing is having the description of the part(s)
+
+// General parsing...
+
+// (ui8a_data, byte_offset, instruction)
+
+// want to avoid specific parsing instruction functions, except by auto-generating them.
+
+// focus on defining the format(s) and object(s) within them now.
+//  May still make use of a scanning algorithm but once it's through that, should not need other algo...?
+//   Maybe it will, keep it extendable and fast.
+
+const def_jpeg_part = {
+
+    // as a sequence?
+    //  sequence / array may make most sense.
+
+    // length, the rest of the data
 }
 
-const arr_jpeg_section_names = new Array(256);
-arr_jpeg_section_names[216] = 'SOI';
+// Binary_Object_Data_Item_Definition
+//  Name, type
 
-// generate the app strings according to formula.
+// Or the binary data items in sequence.
+//  The types here will help keep things strongly typed etc.
 
+// Replacement of FFxx with what?
+//  Single quick scanning function?
 
-range(0, 15).map(i => {
-    arr_jpeg_section_names[224 + i] = 'APP' + i;
-});
-
-//arr_jpeg_section_names[224] = 'APP0';
-//arr_jpeg_section_names[225] = 'APP1';
-
+// Then sub-definitions with classes will be of use.
+// Sequence can be used in function that does the parsing / deserialise.
 
 
+// Be able to indicate binary section of unknown length.
+//  Binary sections can then be used for another level of decoding.
 
-arr_jpeg_section_names[219] = 'DQT';
-arr_jpeg_section_names[196] = 'DHT';
-arr_jpeg_section_names[192] = 'SOF0';
-arr_jpeg_section_names[254] = 'COM';
-arr_jpeg_section_names[218] = 'SOS';
-arr_jpeg_section_names[217] = 'EOI';
-arr_jpeg_section_names[221] = 'DRI'; // Response Interval
 
+// Some hooks? 2? for length calculation and validation functions?
+//  such as for PNG's CRC.
+
+// Hopefully will be part of the fastest JS JPEG decoder!
+
+
+// Very much stick to making the definitions with this code.
+//  With this code stable, other code can focus on parsing streams using these definitions.
+//   Will make system that works with incoming asyncronous data.
+
+
+// Not using the basic chunks right now.
+//  Scanning will find out which specific typed chunks to use.
+
+// BOD_X_Buffer class????
+
+
+// May need to just define / model flexible types here.
+//  This system will make it very clear, while other systems will make use of it.
+
+class BOD_JPEG_Chunk extends Binary_Object_Segment_Definition {
+    constructor(spec) {
+        spec.format = 'JPEG';
+        super(spec);
+
+        const seq = this.sequence;
+        // And a required value given...?
+        // .required.value = ...
+
+        seq.push(new BOD_Ui8({
+            name: 'begin_code',
+            required: {
+                hex_value: 'FF'
+            }
+        }));
+        seq.push(new BOD_Ui8({
+            name: 'chunk_type_code'
+        }));
+
+        // BOD_Buffer
+        // The 'x' Buffer :)
+        // Can be length 0. Needs to be for the SOI which is only 2 bytes.
+        //seq.push(new BOD_Buffer({
+        //    name: 'x'
+        //}));
+        // Designated unknown / variable / continuous buffer.
+
+        // Optional length?
+        //  Better just to have the rest as well...?
+
+        // then do they all have lengths?
+        //  not all of them I think.
+        // Then another part gets read, is still a UI 8 but we check against it's hex value? Can do that.
+
+    }
+}
+
+const seq_app0 = [
+    /*
+    {
+        name: 'APP0 marker',
+        hex_value: 'ffe0'
+    },
+    
+    {
+        name: 'Identifier',
+        type: 'string',
+        hex_value: '4a46494600',
+        length: 5
+    },
+    //,
+    */
+    '(ui16 part_length_from_here)',
+    '(string[5] Identifier)',
+    '(ui8 JFIF_ver_major)',
+    '(ui8 JFIF_ver_minor)',
+    '(ui8 Density_Units)',
+    '(ui16 Xdensity)',
+    '(ui16 Ydensity)',
+    '(ui8 Xthumbnail)',
+    '(ui8 Ythumbnail)',
+    '(ui8a basic_thumbnail)' // its size is 'the rest' - it's known how much space is left in the sequence.
+]
+
+
+class BOD_JPEG_APP0 extends BOD_JPEG_Chunk {
+    constructor(spec = {}) {
+        spec.name = 'APP0';
+        super(spec);
+        const seq = this.sequence;
+        seq.push(new BOD_Ui16({
+            name: 'length'
+        }));
+        seq.push(new BOD_Ascii_String({
+            name: 'identifier',
+            length: 5
+        }));
+        seq.push(new BOD_Ui8({
+            name: 'jfif_ver_major'
+        }));
+        seq.push(new BOD_Ui8({
+            name: 'jfif_ver_major'
+        }));
+        seq.push(new BOD_Ui8({
+            name: 'density_units'
+        }));
+        seq.push(new BOD_Ui16({
+            name: 'x_density'
+        }));
+        seq.push(new BOD_Ui16({
+            name: 'y_density'
+        }));
+        seq.push(new BOD_Ui8({
+            name: 'x_thumbnail'
+        }));
+        seq.push(new BOD_Ui8({
+            name: 'y_thumbnail'
+        }));
+        seq.push(new BOD_Buffer({
+            name: 'buf_thumbnail'
+        }));
+
+
+        // BOD_Ascii_String
+
+        // Be able to give the value of a string as well...
+        //  Or read the value.
+
+
+
+
+
+    }
+
+}
+
+// JPEG start and JFIF
+
+
+// Then specific BODs for the objects within the JPEG.
+
+// sequence tree?
+//  sequence levels?
+
+// Get the outer parsing working first.
+// And this may be it for parsing definitions....
+
+class BOD_JPEG_DHT extends BOD_JPEG_Chunk {
+    constructor(spec = {}) {
+        spec.name = 'DHT';
+        super(spec);
+        const seq = this.sequence;
+
+        seq.push(new BOD_Ui16({
+            name: 'length'
+        }));
+
+        seq.push(new BOD_Ui8({
+            name: 'huffman_table_spec'
+        }));
+
+        // BOD_Ui8_Array
+        seq.push(new BOD_Ui8_Array({
+            name: 'code_counts',
+            length: 16 // array items count also 16. array_length and byte_length...? need to be careful / explicit in cases that are not 8 bit.
+        }));
+        // BOD_Buffer
+        // Length assumed to be the rest?
+        seq.push(new BOD_Buffer({
+            name: 'buf_huffman'
+        }));
+        // Could have more info about what the buf_huffman's OO type is...
+        //  or rather make the oo-huffman using these two variables as input.
+        //  describe this in the next level.
+
+        // Then the remainder of the chunk is a binary section for now...?
+        //  Buffer...?
+        //   Or Binary_Type?
+
+        // We will use our own buffer? Too confusing?
+        //  A node buffer polyfill, as well as bit manipulation...
+        //   Could work well.
+        //   See if node buffer uses js anyway....
+
+        // Then follows an array.
+        //  Definitely want to be able to declare (typed) array types, not just binary.
+    }
+}
+
+class BOD_JPEG_DQT extends BOD_JPEG_Chunk {
+    constructor(spec = {}) {
+        spec.name = 'DQT';
+        super(spec);
+        const seq = this.sequence;
+
+        seq.push(new BOD_Ui16({
+            name: 'length'
+        }));
+
+        seq.push(new BOD_Ui8({
+            name: 'dqt_table_spec'
+        }));
+        // BOD_Buffer
+        // Length assumed to be the rest?
+        seq.push(new BOD_Buffer({
+            name: 'buf_dqt'
+        }));
+        // Could have more info about what the buf_huffman's OO type is...
+        //  or rather make the oo-huffman using these two variables as input.
+        //  describe this in the next level.
+
+        // Then the remainder of the chunk is a binary section for now...?
+        //  Buffer...?
+        //   Or Binary_Type?
+
+        // We will use our own buffer? Too confusing?
+        //  A node buffer polyfill, as well as bit manipulation...
+        //   Could work well.
+        //   See if node buffer uses js anyway....
+
+        // Then follows an array.
+        //  Definitely want to be able to declare (typed) array types, not just binary.
+    }
+}
+
+class BOD_JPEG_SOS extends BOD_JPEG_Chunk {
+    constructor(spec = {}) {
+        spec.name = 'SOS';
+        super(spec);
+        const seq = this.sequence;
+
+        seq.push(new BOD_Ui16({
+            name: 'length'
+        }));
+
+        seq.push(new BOD_Ui8({
+            name: 'selectors_count'
+        }));
+        // BOD_Buffer
+        // Length assumed to be the rest?
+        seq.push(new BOD_Buffer({
+            name: 'buf_scan'
+        }));
+        // Could have more info about what the buf_huffman's OO type is...
+        //  or rather make the oo-huffman using these two variables as input.
+        //  describe this in the next level.
+
+        // Then the remainder of the chunk is a binary section for now...?
+        //  Buffer...?
+        //   Or Binary_Type?
+
+        // We will use our own buffer? Too confusing?
+        //  A node buffer polyfill, as well as bit manipulation...
+        //   Could work well.
+        //   See if node buffer uses js anyway....
+
+        // Then follows an array.
+        //  Definitely want to be able to declare (typed) array types, not just binary.
+    }
+}
 
 /*
+SOS Start of Scan
+const scanLength = readUint16(); // skip data length
+          const selectorsCount = data[offset++];
+*/
+
+class BOD_JPEG_SOI extends BOD_JPEG_Chunk {
+    constructor(spec = {}) {
+        spec.start = true;
+        super(spec);
+        
+        // Then the remainder of the chunk is a binary section for now...?
+        //  Buffer...?
+        //   Or Binary_Type?
+
+        // We will use our own buffer? Too confusing?
+        //  A node buffer polyfill, as well as bit manipulation...
+        //   Could work well.
+        //   See if node buffer uses js anyway....
+
+        // Then follows an array.
+        //  Definitely want to be able to declare (typed) array types, not just binary.
+    }
+}
+
+class BOD_JPEG_EOI extends BOD_JPEG_Chunk {
+    constructor(spec = {}) {
+        spec.end = true;
+        super(spec);
+        
+        // Then the remainder of the chunk is a binary section for now...?
+        //  Buffer...?
+        //   Or Binary_Type?
+
+        // We will use our own buffer? Too confusing?
+        //  A node buffer polyfill, as well as bit manipulation...
+        //   Could work well.
+        //   See if node buffer uses js anyway....
+
+        // Then follows an array.
+        //  Definitely want to be able to declare (typed) array types, not just binary.
+    }
+}
 
 
+const def_jpeg_dht = new BOD_JPEG_DHT();
+const def_jpeg_eoi = new BOD_JPEG_EOI();
+const def_jpeg_app0 = new BOD_JPEG_APP0();
+const def_jpeg_dqt = new BOD_JPEG_DQT();
+const def_jpeg_sos = new BOD_JPEG_SOS();
+const def_jpeg_soi = new BOD_JPEG_SOI();
+
+const section_type_defs = {
+    'DHT': def_jpeg_dht,
+    'DQT': def_jpeg_dqt,
+    'EOI': def_jpeg_eoi,
+    'APP0': def_jpeg_app0,
+    'SOS': def_jpeg_sos,
+    'SOI': def_jpeg_soi
+}
+//console.log('section_type_defs', section_type_defs);
+
+
+// Create the decode (stage) functions from the sig defs...
+
+const fn_decode_dht = fn_parse_from_oo_type_def(def_jpeg_dht);
+const fn_decode_dqt = fn_parse_from_oo_type_def(def_jpeg_dqt);
+console.log('fn_decode_dht', fn_decode_dht);
+const fn_decode_eoi = fn_parse_from_oo_type_def(def_jpeg_dht);
+const fn_decode_app0 = fn_parse_from_oo_type_def(def_jpeg_app0);
+const fn_decode_sos = fn_parse_from_oo_type_def(def_jpeg_sos);
+const fn_decode_soi = fn_parse_from_oo_type_def(def_jpeg_soi);
+
+const section_decoder_fns = {
+    'DHT': fn_decode_dht,
+    'DQT': fn_decode_dqt,
+    'EOI': fn_decode_eoi,
+    'APP0': fn_decode_app0,
+    'SOS': fn_decode_sos,
+    'SOI': fn_decode_soi
+}
+
+
+//console.trace();
+//throw 'stop';
+/*
 case 0xFFE0: // APP0 (Application Specific)
 case 0xFFE1: // APP1
 case 0xFFE2: // APP2
@@ -97,14 +475,6 @@ arr_jpeg_section_names[214] = 'RESET6';
 arr_jpeg_section_names[215] = 'RESET7';
 */
 
-arr_jpeg_section_names[208] = 'RESET';
-arr_jpeg_section_names[209] = 'RESET';
-arr_jpeg_section_names[210] = 'RESET';
-arr_jpeg_section_names[211] = 'RESET';
-arr_jpeg_section_names[212] = 'RESET';
-arr_jpeg_section_names[213] = 'RESET';
-arr_jpeg_section_names[214] = 'RESET';
-arr_jpeg_section_names[215] = 'RESET';
 
 /*
 
@@ -118,55 +488,15 @@ arr_jpeg_section_names[215] = 'RESET';
 
 */
 
-const dctZigZag = new Uint8Array([
-    0,
-    1,  8,
-   16,  9,  2,
-    3, 10, 17, 24,
-   32, 25, 18, 11, 4,
-    5, 12, 19, 26, 33, 40,
-   48, 41, 34, 27, 20, 13,  6,
-    7, 14, 21, 28, 35, 42, 49, 56,
-   57, 50, 43, 36, 29, 22, 15,
-   23, 30, 37, 44, 51, 58,
-   59, 52, 45, 38, 31,
-   39, 46, 53, 60,
-   61, 54, 47,
-   55, 62,
-   63
- ]);
+/*
 
+ Specific object definitions. JPEG parts.
+ // General JPEG Binary Object Def
+
+*/
 
 
 // seq_app0
-
-const seq_app0 = [
-    /*
-    {
-        name: 'APP0 marker',
-        hex_value: 'ffe0'
-    },
-    
-    {
-        name: 'Identifier',
-        type: 'string',
-        hex_value: '4a46494600',
-        length: 5
-    },
-    //,
-    */
-    '(ui16 part_length_from_here)',
-    '(string[5] Identifier)',
-    '(ui8 JFIF_ver_major)',
-    '(ui8 JFIF_ver_minor)',
-    '(ui8 Density_Units)',
-    '(ui16 Xdensity)',
-    '(ui16 Ydensity)',
-    '(ui8 Xthumbnail)',
-    '(ui8 Ythumbnail)',
-    '(ui8a basic_thumbnail)' // its size is 'the rest' - it's known how much space is left in the sequence.
-]
-
 
 // JPEG
 
@@ -195,12 +525,89 @@ const seq_app0 = [
 
 
 
+// Some kind of Format object?
+//  Extends BOD?
+//   But these definitions don't contain custom functions.
+
+
+
+// Format object containing functions / values to help the PolyCodec?
+
+// An escape-read-copy?
+
+
+
+
+// const escape_jpeg_ta = (ta_data, arr_escape_positions)
+
+const escape_jpeg_ta = (ta_data, byi_start, byi_end, arr_escape_positions) => {
+
+    //console.log('escape_jpeg_ta', escape_jpeg_ta);
+    //console.log('arr_escape_positions.length', arr_escape_positions.length);
+
+    // Will do fairly simple character copying / writing.
+
+    const l_res = byi_end - byi_start - arr_escape_positions.length;
+
+    //console.log('byi_start, byi_end', [byi_start, byi_end]);
+
+    //console.log('escape_jpeg_ta l_res', l_res);
+
+    let wbyi = 0;
+
+    const ta_escaped = new Uint8Array(l_res);
+
+    // the next expected escape position.
+    //  the index in the escape positions array.
+
+    let i_escape_positions = 0;
+    let next_escape_position = arr_escape_positions[i_escape_positions++];
+
+    // Copying the chunks between them would be more efficient.
+
+    for (let byi = byi_start; byi < byi_end; byi++) {
+        // When we have an escape position, skip it.
+        // Skip the character after the escape BYI...?
+
+        if (byi === next_escape_position) {
+            //console.log('have escape position at rs chunk byi ' + byi);
+            //console.log('ta_data[byi - 1]', ta_data[byi - 1]);
+            //console.log('ta_data[byi]', ta_data[byi]);
+            ta_escaped[wbyi++] = ta_data[byi - 1]; // would be 255.
+            next_escape_position = arr_escape_positions[i_escape_positions++];
+        } else {
+            ta_escaped[wbyi++] = ta_data[byi];
+        }
+    }
+
+    return ta_escaped;
+
+    // will read / copy the ta into new parts....
+}
+
+
+
+
+
+
+
+
+
+
+
 
 
 
 const add_jpeg_format_to_polycodec = (polycodec) => {
+    // Keep working on this.
 
-    if (!polycodec.has_format('jpeg')) {
+    // Add a JPEG codec.
+    //  Polycodec will be able to hold multiple codecs / codec versions.
+
+    const has_jpeg = polycodec.has_format('jpeg');
+    console.log('has_jpeg', has_jpeg);
+
+    if (!has_jpeg) {
         //polycodec.add_format('jpeg', {
         //    hex4by_sig: 'ffd8ffe0'
         //});
@@ -229,176 +636,52 @@ const add_jpeg_format_to_polycodec = (polycodec) => {
 
         // And less JPEG-specific in the polycodec.
         //  Clearer how to integrate substantially different PNG parsing.
-        polycodec.set_format_fn_input_scan('jpeg', (ta_data, o_from_last_scan) => {
 
-            // redo the ta_data, dealing with the issue with value 255.
-            //  means reallocating though :(
 
-            
-            
+        // Input scan function definitely seems important.
+        //  But can / how can generic parsing do it with the description it is given?
 
+        // Format markers make sense!
+        //  Won't be as chaotic to implement as before when using the OO def classes.
 
 
-            //console.log('o_from_last_scan', o_from_last_scan);
+        // Polycodec should support different means and methods where possible.
+        //  Level0 imput scan function definitely makes sense.
 
-            // Search for the JPEG markers.
+        // Generalise scanning elsewhere?
+        //  Markers behaviour?
+        //  Need to handle the escaping too.
+        //   Always escape what is between the markers?
+        
+        // scan_and_escape?
+        //  or do scan, it will find the characters to unescape / replace
 
-            // May be better to raise immediate events?
-            //  May not matter really, can have some JPEG stream-specific analysis here.
+        // jpeg_recieved_chunk_scan
+        // rchunk rather than chunk or jpeg chunk.
 
-            //console.log('jpeg ta_data', ta_data);
+        // a 'state' object may be better API. more flexi.
+        //  the state of the FSM.
+        // rs_scan.js?
+        polycodec.set_format_fn_input_scan('jpeg', jpeg_rs_scan);
+        // set_format_fn_escape
 
-            // identify sequnce markers.
+        polycodec.set_format_fn_escape('jpeg', escape_jpeg_ta);
+        polycodec.set_format_section_type_defs('jpeg', section_type_defs);
+        // section_decoder_fns
+        polycodec.set_format_section_decoder_fns('jpeg', section_decoder_fns);
 
-            const arr_section_markers = [];
+        // set the type def decoders?
+        //  have them already...? Set them all at once?
+        //  And they are just the autodecoders / parsers.
+        //   1st stage decoding 
 
-            // possible seuqnce markers in the last byte...
-            //  Need to handle that in theory and practise.
+        // Then using the type defs, it should be possible to parse / encode / ser / deser.
+        //  Or those functions would be generated already in the source code above.
 
-            const l = ta_data.length;
-            let last_byte, current_byte;
+        // 2 or more stage decoding...
 
-            let last_section_name, current_section_name;
-            let byi_last_section, byi_current_section;
-
-            if (o_from_last_scan && o_from_last_scan.current_section_name) current_section_name = o_from_last_scan.current_section_name;
-
-            const res = {};
-
-            let i_section_in_data_chunk = 0;
-
-            // change 255, 255 to 255 in the process.
-
-            //  create a new JPEG chunk buffer in that case?
-            //   mark the appearance of a 255, 255?
-            //    would help to escape it faster later on.
-
-
-
-
-            for (let byi = 0; byi < l; byi++) {
-                current_byte = ta_data[byi];
-
-                //console.log('[byi, current_byte]', [byi, current_byte]);
-
-                if (byi > 0) {
-                    // identify if a marker has been read.
-
-                    // deal with 255, 255...
-                    //  or is it 255, 0?
-
-                    // optional 0xFF fill bytes
-
-                    
-
-
-                    if (last_byte === 255 && current_byte !== 0) {
-                        if (current_byte === 255) {
-                            // fill byte.
-
-                        } else {
-
-                            // It's a new section....
-                            //console.log('[byi, current_byte, last_byte]', [byi, current_byte, last_byte]);
-                            //console.log('[byi, last_byte, current_byte]', [byi, last_byte, current_byte]);
-
-                            if (arr_jpeg_section_names[current_byte]) {
-
-                                last_section_name = current_section_name;
-                                current_section_name = arr_jpeg_section_names[current_byte];
-                                byi_last_section = byi_current_section;
-                                byi_current_section = byi - 1;
-
-                                if (last_section_name && current_section_name) {
-                                    //console.log('last_section_name', last_section_name);
-                                    //console.log('current_section_name', current_section_name);
-                                    const o_section_marker = {
-                                        name: last_section_name,
-                                        byi_start: byi_last_section || 0,
-                                        byi_end: byi_current_section,
-                                        byi_data_end: byi_current_section
-                                    };
-                                    
-                                    if (o_from_last_scan && o_from_last_scan.current_section_name && i_section_in_data_chunk === 0) {
-                                        o_section_marker.continues_from_previous = true;
-                                        o_section_marker.byi_data_start = 0;
-                                    } else {
-                                        o_section_marker.byi_data_start = (byi_last_section || 0) + 2;
-                                    }
-                                    arr_section_markers.push(o_section_marker);
-                                    i_section_in_data_chunk++;
-                                }
-
-                            } else {
-                                console.trace();
-
-                                // Reset markers (0xD0 through 0xD7)
-
-                                console.log('hex(current_byte) ' + current_byte.toString(16));
-
-                                console.log('[byi, current_byte, last_byte]', [byi, current_byte, last_byte]);
-                                throw 'Unsupported or nyi current_byte: ' + current_byte;
-
-                                
-                            }
-
-                        }
-
-                        
-                        
-
-
-
-                    }
-                }
-
-                //if (byi === l - 1) {
-                    
-                //}
-
-                // In the last position - if it ends with a marker start (255), we need to carry that forward to the beginning of the next scan.
-                //  Seems worth solving this thoeretical problem.
-
-                last_byte = current_byte;
-            }
-
-            // Then the information to carry into the next scan call.
-
-            if (current_byte === 255) {
-                res.ta_carry_forward = new UInt8Array([current_byte]);
-            }
-
-            if (current_section_name) {
-                arr_section_markers.push({
-                    name: current_section_name,
-                    byi_start: byi_current_section || 0,
-                    byi_end: l
-                });
-
-                res.o_for_next_scan = {
-                    current_section_name: current_section_name
-                }
-            }
-            res.arr_section_markers = arr_section_markers;
-
-            //console.log('res', res);
-
-            //throw 'stop';
-
-            
-
-            
-
-
-
-            return res;
-
-
-
-
-
-        });
-
+        // decoding chains...
+        // functional decoding chains.
 
         // Then parsers for specific sections...
         //  These will be streaming?
@@ -407,277 +690,307 @@ const add_jpeg_format_to_polycodec = (polycodec) => {
 
         // To decode the full typed array.
         //  Could some of it be left over?
-        polycodec.add_format_part_decoder('jpeg', 'APP0', ta_app0 => {
-            console.log('ta_app0', ta_app0);
 
-            // Binary parsing functions...
-            //  parse_binary(ta, schema)
+        // decoding chains... not having to specify the whole decoder.
+        // parse, then decode, but much is a combination of both. maybe direct decoding from the parsed data etc.
+        // want modular decoding, ie specific functions for decoding that get created and parsed etc.
+
+        // readers, stream readers, stream data / metadata generators.
+
+        // const parse_APP0 = fn_parse_binary_seq(seq_app0)
+
+        // streaming parser...?
+
+        // decoding in layers...
+        //  multiple transformations...
+
+        // Asyncronous read functions.
+        //  Will wait until there is enough in the read-ahead?
+        //  Continuously read all bits that come in...
+        //   Continuous reading, specifying available data
+        //    Then async reading could look at this data?
+        //   
 
 
-            const res = Poly_Codec.parse_binary(ta_app0, seq_app0);
-            //console.log('res', res);
+
+        // For the moment will see what milage I get with the Def classes, and functions that get generated to do the parsing / writing binary.
+        //  And the DQT part was not working here - will further split the parsing and decoding / further parsing into layers.
 
 
+        const _old_add_part_decoders = () => {
 
-            //console.trace();
-            //throw 'stop';
-            return res;
-        });
 
-        // And can have the quantization table decoder too.
-
-        polycodec.add_format_part_decoder('jpeg', 'DQT', ta_dqt => {
-            console.log('ta_dqt', ta_dqt);
-            console.log('ta_dqt.length', ta_dqt.length);
-
-            const part_length = read_ui16(ta_dqt, 0) - 2;
-            console.log('part_length', part_length);
-
-            let byi = 0, j, z;
-
-            const res = {};
-
-            while (byi < part_length) {
-                console.log('byi', byi);
-                let quantizationTableSpec = ta_dqt[byi++];
-                console.log('quantizationTableSpec', quantizationTableSpec);
-                let tableData = new Int32Array(64);
-
-                if ((quantizationTableSpec >> 4) === 0) { // 8 bit values
+            polycodec.add_format_part_decoder('jpeg', 'APP0', ta_app0 => {
+                console.log('ta_app0', ta_app0);
+                // Binary parsing functions...
+                //  parse_binary(ta, schema)
+    
+                const res = Poly_Codec.parse_binary(ta_app0, seq_app0);
+                //console.log('res', res);
+                //console.trace();
+                //throw 'stop';
+                return res;
+            });
+    
+            // And can have the quantization table decoder too.
+    
+            polycodec.add_format_part_decoder('jpeg', 'DQT', ta_dqt => {
+                console.log('ta_dqt', ta_dqt);
+                console.log('ta_dqt.length', ta_dqt.length);
+    
+                const part_length = read_ui16(ta_dqt, 0) - 2;
+                console.log('part_length', part_length);
+    
+                let byi = 0, j, z;
+                const res = {};
+    
+                while (byi < part_length) {
+                    console.log('byi', byi);
+                    let quantizationTableSpec = ta_dqt[byi++];
+                    console.log('quantizationTableSpec', quantizationTableSpec);
+                    let tableData = new Int32Array(64);
+    
+                    if ((quantizationTableSpec >> 4) === 0) { // 8 bit values
+                        for (j = 0; j < 64; j++) {
+                          z = dctZigZag[j];
+                          tableData[z] = ta_dqt[byi++];
+                        }
+                      } else if ((quantizationTableSpec >> 4) === 1) { //16 bit
+                        for (j = 0; j < 64; j++) {
+                          z = dctZigZag[j];
+                          tableData[z] = ta_dqt[byi++] * 256 + ta_dqt[byi++];
+                        }
+                      } else
+                        throw new Error("DQT: invalid table spec");
+                    
+                    console.log('tableData', tableData);
+                    res[quantizationTableSpec & 15] = tableData;
+                }
+                return res;
+    
+                //for (let c = 2; c < part_length; c++) {
+    
+                //}
+    
+                /*
+    
+    
+                var quantizationTablesLength = readUint16();
+                var quantizationTablesEnd = quantizationTablesLength + offset - 2;
+                while (offset < quantizationTablesEnd) {
+                  var quantizationTableSpec = data[offset++];
+                  var tableData = new Int32Array(64);
+                  if ((quantizationTableSpec >> 4) === 0) { // 8 bit values
                     for (j = 0; j < 64; j++) {
-                      z = dctZigZag[j];
-                      tableData[z] = ta_dqt[byi++];
+                      var z = dctZigZag[j];
+                      tableData[z] = data[offset++];
                     }
                   } else if ((quantizationTableSpec >> 4) === 1) { //16 bit
                     for (j = 0; j < 64; j++) {
-                      z = dctZigZag[j];
-                      tableData[z] = ta_dqt[byi++] * 256 + ta_dqt[byi++];
+                      var z = dctZigZag[j];
+                      tableData[z] = readUint16();
                     }
                   } else
                     throw new Error("DQT: invalid table spec");
-                
-                console.log('tableData', tableData);
-
-                res[quantizationTableSpec & 15] = tableData;
-            }
-            return res;
-
-            //for (let c = 2; c < part_length; c++) {
-
-            //}
-
-            /*
-
-
-            var quantizationTablesLength = readUint16();
-            var quantizationTablesEnd = quantizationTablesLength + offset - 2;
-            while (offset < quantizationTablesEnd) {
-              var quantizationTableSpec = data[offset++];
-              var tableData = new Int32Array(64);
-              if ((quantizationTableSpec >> 4) === 0) { // 8 bit values
-                for (j = 0; j < 64; j++) {
-                  var z = dctZigZag[j];
-                  tableData[z] = data[offset++];
+                  quantizationTables[quantizationTableSpec & 15] = tableData;
                 }
-              } else if ((quantizationTableSpec >> 4) === 1) { //16 bit
-                for (j = 0; j < 64; j++) {
-                  var z = dctZigZag[j];
-                  tableData[z] = readUint16();
-                }
-              } else
-                throw new Error("DQT: invalid table spec");
-              quantizationTables[quantizationTableSpec & 15] = tableData;
-            }
-            break;
-
-            */
-
-
-
-            // Binary parsing functions...
-            //  parse_binary(ta, schema)
-
-
-            //const res = Poly_Codec.parse_binary(ta_app0, seq_app0);
-            //console.log('res', res);
-
-            console.trace();
-            throw 'stop';
-            return res;
-        });
-
-
-        // dht...
-
-
-
-        /*
-
-        case 0xFFC4: // DHT (Define Huffman Tables)
-            var huffmanLength = readUint16();
-            for (i = 2; i < huffmanLength;) {
-              var huffmanTableSpec = data[offset++];
-              var codeLengths = new Uint8Array(16);
-              var codeLengthSum = 0;
-              for (j = 0; j < 16; j++, offset++)
-                codeLengthSum += (codeLengths[j] = data[offset]);
-              var huffmanValues = new Uint8Array(codeLengthSum);
-              for (j = 0; j < codeLengthSum; j++, offset++)
-                huffmanValues[j] = data[offset];
-              i += 17 + codeLengthSum;
-
-              ((huffmanTableSpec >> 4) === 0 ?
-                huffmanTablesDC : huffmanTablesAC)[huffmanTableSpec & 15] =
-                buildHuffmanTable(codeLengths, huffmanValues);
-            }
-            break;
-
-        */
-
-        polycodec.add_format_part_decoder('jpeg', 'DHT', ta_dht => {
-            console.log('JPEG decode DHT');
-            console.log('ta_dht', ta_dht);
-            console.log('ta_dht.length', ta_dht.length);
-
-            // will use try/catch for block decoding.
-            //  be able to deal fith failed block decodes better.
-            //  need to look into when a block fails to decode.
-            //   ignore it? deal with errors better.
-
-
-
-
-
-
-            let byi = 0;
-            const part_length = read_ui16(ta_dht, 0) - 2;
-            byi += 2;
-            let j;
-            //console.trace();
-            console.log('(read) part_length', part_length);
-
-            // look at the 1st 16 bytes...
-
-            const huffmanTableSpec = ta_dht[2];
-            byi++;
-
-            const ta_lengths = ta_dht.subarray(3, 19);
-            const ta_data = ta_dht.subarray(19);
-            console.log('ta_dht.length', ta_dht.length);
-
-            console.log('ta_lengths', ta_lengths);
-            console.log('ta_data', ta_data);
-            console.log('ta_lengths.length', ta_lengths.length);
-            console.log('ta_data.length', ta_data.length);
-            console.log('ta_data.length * 8', ta_data.length * 8);
-
-            let sum = 0;
-            const l_lengths = ta_lengths.length;
-            //console.log('l_lengths', l_lengths);
-
-            for (let c = 0; c < l_lengths; c++) {
-                sum += ta_lengths[c] * (c + 1);
-            }
-            console.log('sum', sum);
-            console.log('sum / 8', sum /8);
-
-            if (sum > (ta_data.length * 8)) {
+                break;
+    
+                */
+    
+    
+    
+                // Binary parsing functions...
+                //  parse_binary(ta, schema)
+    
+    
+                //const res = Poly_Codec.parse_binary(ta_app0, seq_app0);
+                //console.log('res', res);
+    
                 console.trace();
+                throw 'stop';
+                return res;
+            });
+    
+    
+            // dht...
+    
+    
+    
+            /*
+    
+            case 0xFFC4: // DHT (Define Huffman Tables)
+                var huffmanLength = readUint16();
+                for (i = 2; i < huffmanLength;) {
+                  var huffmanTableSpec = data[offset++];
+                  var codeLengths = new Uint8Array(16);
+                  var codeLengthSum = 0;
+                  for (j = 0; j < 16; j++, offset++)
+                    codeLengthSum += (codeLengths[j] = data[offset]);
+                  var huffmanValues = new Uint8Array(codeLengthSum);
+                  for (j = 0; j < codeLengthSum; j++, offset++)
+                    huffmanValues[j] = data[offset];
+                  i += 17 + codeLengthSum;
+    
+                  ((huffmanTableSpec >> 4) === 0 ?
+                    huffmanTablesDC : huffmanTablesAC)[huffmanTableSpec & 15] =
+                    buildHuffmanTable(codeLengths, huffmanValues);
+                }
+                break;
+    
+            */
+    
+            polycodec.add_format_part_decoder('jpeg', 'DHT', ta_dht => {
+                console.log('JPEG decode DHT');
+                console.log('ta_dht', ta_dht);
+                console.log('ta_dht.length', ta_dht.length);
+    
+                // will use try/catch for block decoding.
+                //  be able to deal fith failed block decodes better.
+                //  need to look into when a block fails to decode.
+                //   ignore it? deal with errors better.
+    
+                let byi = 0;
+    
+                // the length 
+    
+                const part_length = read_ui16(ta_dht, 0) - 2;
+                byi += 2;
+                let j;
+                //console.trace();
+                console.log('(read) part_length', part_length);
+    
+                // look at the 1st 16 bytes...
+    
+                // no huffman table spec?
+                //  did not see it in jpeg-js decoder.
+    
+                //const huffmanTableSpec = ta_dht[2];
+                //byi++;
+    
+                const ta_lengths = ta_dht.subarray(2, 18);
+                const ta_data = ta_dht.subarray(18);
+                console.log('ta_dht.length', ta_dht.length);
+    
                 console.log('ta_lengths', ta_lengths);
-                throw 'Huffman data does not fit in array';
-            } else {
-
-
-
-                // then lift the codes out of the ta_data.
-                let bii = 0;
-
+                console.log('ta_data', ta_data);
+                console.log('ta_lengths.length', ta_lengths.length);
+                console.log('ta_data.length', ta_data.length);
+                console.log('ta_data.length * 8', ta_data.length * 8);
+    
+                let sum = 0;
+                const l_lengths = ta_lengths.length;
+                //console.log('l_lengths', l_lengths);
+    
                 for (let c = 0; c < l_lengths; c++) {
-                    const length_in_bits = c + 1;
-                    const num_bit_sequences_at_length = ta_lengths[c];
-                    //console.log('length_in_bits', length_in_bits);
-                    //console.log('num_bit_sequences_at_length', num_bit_sequences_at_length);
-                    //sum += ta_lengths[c] * (c + 1);
-
-                    for (let d = 0; d < num_bit_sequences_at_length; d++) {
-                        //console.log('bii', bii);
+                    sum += ta_lengths[c] * (c + 1);
+                }
+                console.log('sum', sum);
+                console.log('sum / 8', sum /8);
+    
+                if (sum > (ta_data.length * 8)) {
+                    console.trace();
+                    console.log('ta_lengths', ta_lengths);
+                    throw 'Huffman data does not fit in array';
+                } else {
+    
+                    // then lift the codes out of the ta_data.
+                    let bii = 0;
+    
+                    for (let c = 0; c < l_lengths; c++) {
+                        const length_in_bits = c + 1;
+                        const num_bit_sequences_at_length = ta_lengths[c];
                         //console.log('length_in_bits', length_in_bits);
-                        //console.log('ta_data.length', ta_data.length);
-                        //console.log('ta_data.length * 8', ta_data.length * 8);
-
-                        const num_bit_sequence = get_upto32bit_ui32_from_ui8a_at_bii(ta_data, bii, length_in_bits);
-                        //console.log('num_bit_sequence', num_bit_sequence);
-
-                        bii += length_in_bits;
+                        //console.log('num_bit_sequences_at_length', num_bit_sequences_at_length);
+                        //sum += ta_lengths[c] * (c + 1);
+    
+                        for (let d = 0; d < num_bit_sequences_at_length; d++) {
+                            //console.log('bii', bii);
+                            //console.log('length_in_bits', length_in_bits);
+                            //console.log('ta_data.length', ta_data.length);
+                            //console.log('ta_data.length * 8', ta_data.length * 8);
+    
+                            const num_bit_sequence = get_upto32bit_ui32_from_ui8a_at_bii(ta_data, bii, length_in_bits);
+                            //console.log('num_bit_sequence', num_bit_sequence);
+    
+                            bii += length_in_bits;
+                        }
                     }
+    
+                    //console.log('bii', bii);
+                    //console.log('');
+    
+                    //throw 'stop';
+    
+                    // could use some functions later to lookup / reference Huffman table data.
+                    //  may be stored in tree? obj? map?
+    
+    
+    
+    
+                    // then can extract the individual values at those lengths...
+                    //  but worth storing them in the Huffman Table object.
+                    //  read the various values at those lengths
+                    //   not sure how they would get looked up though.
+    
+                    // a list of bit sequences at each length.
+                    
+    
+    
+    
+                    // Then should be able to go through the data, reading out the specific bit patterns.
+    
+                    // Tracking the bit position, and reading the values as JS numbers...?
+                    //  JS numbers do make the most sense for many operations.
+                    //  double-precision 64-bit binary format
+                    //   and these numbers can have & operations etc applying to them.
+    
+                    // Ability to read up to 64 bits from the data, starting at any point.
+    
+                    // Quite a lot will be possible with the 64bit 'word' or 'sentence' type of bit data
+                    //  alongside the length in bits - this could be a 64bit number, or 8 bit using a ta.
+    
+    
+    
+    
+    
+                    /*
+                    each(ta_lengths, (c, i) => {
+                        console.log('[c, parseInt(i)]', [c, parseInt(i)]);
+                        sum += (parseInt(i) + 1) * c;
+                    })
+                    */
+                    // Does seem best to use an OO Huffman Table.
+                    //throw 'stop';
+    
+                    /*
+                    for (let c = 0; c < part_length;) {
+                        const huffmanTableSpec = ta_dht[byi++];
+                        const codeLengths = new Uint8Array(16);
+                        let cl_sum = 0;;
+                        for (j = 0; j < 16; j++, byi++) cl_sum += (codeLengths[j] = ta_dht[byi]);
+                        var huffmanValues = new Uint8Array(cl_sum);
+                        for (j = 0; j < cl_sum; j++, byi++)
+                        huffmanValues[j] = ta_dht[byi];
+    
+                        c += 17 + cl_sum;
+    
+                        // use the data to create a Huffman_Table.
+                        // An OO Huffman_Table would probably make sense.
+                        // Could use a Huffman_Table module, huffman-table on npm?
+                    }
+    
+                    */
                 }
+            });
 
-                //console.log('bii', bii);
-                //console.log('');
 
-                //throw 'stop';
-
-                // could use some functions later to lookup / reference Huffman table data.
-                //  may be stored in tree? obj? map?
+        }
 
 
 
 
-                // then can extract the individual values at those lengths...
-                //  but worth storing them in the Huffman Table object.
-                //  read the various values at those lengths
-                //   not sure how they would get looked up though.
-
-                // a list of bit sequences at each length.
-                
-
-
-
-                // Then should be able to go through the data, reading out the specific bit patterns.
-
-                // Tracking the bit position, and reading the values as JS numbers...?
-                //  JS numbers do make the most sense for many operations.
-                //  double-precision 64-bit binary format
-                //   and these numbers can have & operations etc applying to them.
-
-                // Ability to read up to 64 bits from the data, starting at any point.
-
-                // Quite a lot will be possible with the 64bit 'word' or 'sentence' type of bit data
-                //  alongside the length in bits - this could be a 64bit number, or 8 bit using a ta.
-
-
-
-
-
-                /*
-                each(ta_lengths, (c, i) => {
-                    console.log('[c, parseInt(i)]', [c, parseInt(i)]);
-                    sum += (parseInt(i) + 1) * c;
-                })
-                */
-                // Does seem best to use an OO Huffman Table.
-                //throw 'stop';
-
-                /*
-                for (let c = 0; c < part_length;) {
-                    const huffmanTableSpec = ta_dht[byi++];
-                    const codeLengths = new Uint8Array(16);
-                    let cl_sum = 0;;
-                    for (j = 0; j < 16; j++, byi++) cl_sum += (codeLengths[j] = ta_dht[byi]);
-                    var huffmanValues = new Uint8Array(cl_sum);
-                    for (j = 0; j < cl_sum; j++, byi++)
-                    huffmanValues[j] = ta_dht[byi];
-
-                    c += 17 + cl_sum;
-
-                    // use the data to create a Huffman_Table.
-                    // An OO Huffman_Table would probably make sense.
-                    // Could use a Huffman_Table module, huffman-table on npm?
-                }
-
-                */
-            }
-        });
+        
 
 
         // Don't need the format parts for the moment.
@@ -884,4 +1197,7 @@ const add_jpeg_format_to_polycodec = (polycodec) => {
 
     }
 
+}
+module.exports = {
+    add_jpeg_format_to_polycodec: add_jpeg_format_to_polycodec
 }

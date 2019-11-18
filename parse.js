@@ -1,6 +1,29 @@
 const {Evented_Class, tm, def, tf, clone, each} = require('lang-mini');
 
 
+
+/*
+
+    BOD_Ui8: BOD_Ui8,
+    BOD_Ui16: BOD_Ui16,
+    BOD_String: BOD_String,
+    BOD_Utf8_String: BOD_Utf8_String,
+
+    BOD_Ui8_Array: BOD_Ui8_Array,
+    BOD_Ui16_Array: BOD_Ui16_Array,
+
+    BOD_Buffer: BOD_Buffer,
+
+*/
+
+const {ro} = require('obext')();
+const {BOD_Ui8, BOD_Ui16, BOD_Ui8_Array, BOD_Ui16_Array, BOD_Buffer, BOD_Ascii_String} = require('./math/binary-object-definition');
+
+
+// General purpose functions.
+// Need general purpose Binary_Object_Definition?
+
+
 const read_ui16 = (ta, pos) => ta[pos] * 256 + ta[pos+1];
 
 
@@ -14,7 +37,6 @@ const parse_binary_by_type = (binary, str_type) => {
     } else if (str_type === 'string') {
         return new TextDecoder("utf-8").decode(binary);
     } else {
-        
         console.trace();
         throw 'NYI';
     }
@@ -71,8 +93,6 @@ const map_type_lengths = {
 const parse_sequence = (sequence) => {
     return sequence.map(i => parse_sequence_item(i));
 }
-
-
 // extract_between_strs
 
 const extract_before_and_int_between_strs = (source, marker1, marker2) => {
@@ -86,16 +106,11 @@ const extract_before_and_int_between_strs = (source, marker1, marker2) => {
 }
 
 const extract_type_name_and_length = str_type => extract_before_and_int_between_strs(str_type, '[', ']');
-
-
 const parse_sequence_item = (sequence_item) => {
-
     // Is this part using caching?
 
     const tsi = tf(sequence_item);
     console.log('tsi', tsi);
-
-    
 
     if (tsi === 'o') {
         const tm_item_keys = tm(Object.keys(sequence_item));
@@ -130,26 +145,18 @@ const parse_sequence_item = (sequence_item) => {
             // extract type from the length.
 
         }
-
-
         //get_type_name_and_length();
-
-
         if (tm_item_keys.hex_value) {
             if (!tm_item_keys.length) {
                 res.length = sequence_item.hex_value.length / 2;
             }
         } else {
 
-
         }
         return res;
-        
     } else if (tsi === 's') {
         console.log('sequence_item', sequence_item);
-
         // does the string make use of type[length] notation?
-
         if (str_is_bracketed(sequence_item)) {
             const si_inner = str_remove_outer_chars(sequence_item);
             console.log('si_inner', si_inner);
@@ -161,14 +168,11 @@ const parse_sequence_item = (sequence_item) => {
                 const ss_sip = str_single_param.split(' ');
                 if (ss_sip.length === 2) {
                     console.log('ss_sip', ss_sip);
-
                     const [str_type, param_name] = ss_sip;
                     const etl = extract_type_name_and_length(str_type);
                     //let type_name;
 
-
                     const res = {
-                        
                         name: param_name
                     }
                     if (etl) {
@@ -177,10 +181,7 @@ const parse_sequence_item = (sequence_item) => {
                     } else {
                         res.type = str_type;
                     }
-
                     if (!res.length && map_type_lengths[res.type]) res.length = map_type_lengths[res.type];
-
-
                     return res;
                 } else {
                     console.trace();
@@ -190,15 +191,10 @@ const parse_sequence_item = (sequence_item) => {
                 console.trace();
                 throw 'NYI';
             }
-
         }
     }
 }
-
-
 // Have mathematical / pure functions that produce the parsing output.
-
-
 
 const identify_format = (ta_first_chunk, map_format_names_by_hex4) => {
     const hex4 = hex(ta_first_chunk.subarray(0, 4));
@@ -219,7 +215,6 @@ const extract_input_sections = (ta_data_to_use, arr_section_markers) => {
     //console.log('arr_section_markers.length', arr_section_markers.length);
     if (arr_section_markers.length === 0) {
         // single continuation...
-
         res.push({
             byi_start: 0,
             byi_end: ta_data_to_use.length,
@@ -254,11 +249,9 @@ const extract_input_sections = (ta_data_to_use, arr_section_markers) => {
                 o_res.data = ta_data_to_use.subarray(byi_data_start);
                 Object.assign(o_res, {partial: true, continues_to_next: true})
             }
-
             if (def(l)) {
                 o_res.data_length = l;
             }
-
             res.push(o_res);
         }
     }
@@ -282,9 +275,7 @@ const attempt_read_binary_from_rs_chunk_by_length = (rs_chunk, byi_within_rs_chu
         byi_within_rs_chunk += length;
         return res;
     }
-
 }
-
 
 
 const attempt_read_item_from_rs_chunk = (rs_chunk, byi_within_rs_chunk, def_item) => {
@@ -300,8 +291,6 @@ const attempt_read_item_from_rs_chunk = (rs_chunk, byi_within_rs_chunk, def_item
     // use the parsed item - its' going to be an object.
 
     if (def(parsed_item.length)) {
-
-
         if (parsed_item.length === 0) {
             console.log('parsed_item.length === 0');
             return undefined;
@@ -414,7 +403,7 @@ const attempt_read_item_from_rs_chunk = (rs_chunk, byi_within_rs_chunk, def_item
 }
 
 
-
+// Sequences defined using classes rather than POJOs now. Could derialize / deserialize them in the future.
 const attempt_read_sequence_from_rs_chunk = (rs_chunk, def_sequence) => {
     // want to use the parsed sequence instead.
 
@@ -426,10 +415,8 @@ const attempt_read_sequence_from_rs_chunk = (rs_chunk, def_sequence) => {
     //console.trace();
     //throw 'stop';
 
-
     const l_sequence = def_sequence.length;
     let i_sequence = 0;
-
     let def_item = def_sequence[i_sequence];
 
     let byi = 0;
@@ -471,25 +458,18 @@ const attempt_read_sequence_from_rs_chunk = (rs_chunk, def_sequence) => {
         // Continue to read the sequence...
 
         while (i_sequence < l_sequence) {
-
             let def_item = def_sequence[i_sequence];
-
             // and need to advance they byte index within the sequence.
             //console.log('def_item', def_item);
-
             //console.log('byi', byi);
-
             // does it have length set?
-
             //console.log('def_item', def_item);
-
             //console.trace();
             let o_item;
 
             if(def_item.length) {
                 o_item = attempt_read_item_from_rs_chunk(rs_chunk, byi, def_item);
             } else {
-
                 if (i_sequence === l_sequence - 1) {
                     //console.log('i_sequence === l_sequence - 1', i_sequence === l_sequence - 1);
                     def_item.length = rs_chunk.length - byi;
@@ -511,11 +491,7 @@ const attempt_read_sequence_from_rs_chunk = (rs_chunk, def_sequence) => {
                 }
                 res[o_item.item_name] = o_item;
             }
-
-            
-
             /*
-
             if (def(o_item)) {
                 if (use_part_caching) {
                     //console.log('use_part_caching', use_part_caching);
@@ -523,25 +499,303 @@ const attempt_read_sequence_from_rs_chunk = (rs_chunk, def_sequence) => {
                     //console.log('current_part_cache', current_part_cache);
                 }
             }
-
             */
-
-            
-
             //console.trace();
             //throw 'stop';
-
-
             i_sequence++;
         }
         return res;
     }
+}
+
+//const parse_BOD = 
+
+const read_BOD = (ta_bin, byi, bod_item, length) => {
+
+    // Just reads the item.
+    //  A version that gets the Parsed BOD Item
+
+    length = length || bod_item.length || 0;
+    console.log('read_BOD');
+    console.log('bod_item', bod_item);
+    console.log('bod_item.name', bod_item.name);
+    //console.trace();
+    //throw 'stop';
+
+    if (bod_item instanceof BOD_Ui8) {
+        return ta_bin[byi];
+    } else if (bod_item instanceof BOD_Ui16) {
+        return ta_bin[byi] * 256 + ta_bin[byi + 1];
+    } else if (bod_item instanceof BOD_Ui8_Array) {
+        //console.log('length', length);
+        //console.trace();
+        //throw 'NYI';
+        return ta_bin.subarray(byi, byi + length);
+    } else if (bod_item instanceof BOD_Buffer) {
+        //console.log('length', length);
+        //console.trace();
+        //throw 'NYI';
+        return ta_bin.subarray(byi, byi + length);
+    } else {
+        console.log('length', length);
+        console.trace();
+        throw 'NYI';
+    }
+
+}
+
+const parse_BOD = (ta_bin, byi, bod_item, length, index) => {
+
+    // Just reads the item.
+    //  A version that gets the Parsed BOD Item
+
+    length = length || bod_item.length || 0;
+    //console.log('read_BOD');
+    //console.log('bod_item', bod_item);
+    //console.log('bod_item.name', bod_item.name);
+    //console.trace();
+    //throw 'stop';
+
+    const res_spec = {};
+    if (def(bod_item.name)) res_spec.name = bod_item.name;
+    if (def(length)) res_spec.length = length;
+    if (def(index)) res_spec.index = index;
+    
+    
+
+    if (bod_item instanceof BOD_Ui8) {
+        //return ta_bin[byi];
+        res_spec.type = BOD_Ui8;
+        res_spec.value = ta_bin[byi];
+    } else if (bod_item instanceof BOD_Ui16) {
+        
+        res_spec.type = BOD_Ui16;
+        res_spec.value = ta_bin[byi] * 256 + ta_bin[byi + 1];
+    } else if (bod_item instanceof BOD_Ui8_Array) {
+        //console.log('length', length);
+        //console.trace();
+        //throw 'NYI';
+        res_spec.type = BOD_Ui8_Array;
+        res_spec.value = ta_bin.subarray(byi, byi + length);
+    } else if (bod_item instanceof BOD_Buffer) {
+        //console.log('length', length);
+        //console.trace();
+        //throw 'NYI';
+        res_spec.type = BOD_Buffer;
+        res_spec.value = ta_bin.subarray(byi, byi + length);
+    } else if (bod_item instanceof BOD_Ascii_String) {
+        //console.log('length', length);
+        //console.trace();
+        //throw 'NYI';
+        res_spec.type = BOD_Ascii_String;
+        // Ascii string will be held as ASCII?
+        //  could have a getter function for the value.
+        // use fromCharCode... is that ascii?
+        const sa = ta_bin.subarray(byi, byi + length);
+        const arr_value = new Array(sa.length);
+        for (let c = 0, l = sa.length; c < l; c++) {
+            arr_value[c] = String.fromCharCode(sa);
+        }
+        res_spec.value = arr_value.join('');
+
+
+
+
+        //res_spec.value = ta_bin.subarray(byi, byi + length);
+    } else {
+
+        // BOD_Ascii_String
+
+        console.log('length', length);
+        console.trace();
+        throw 'NYI';
+    }
+
+    const res = new Parsed_Sequence_Item(res_spec);
+    return res;
+
+}
+
+
+// Return an OO parsed sequence object...?
+//  Could make sense and make the code clearer using such types of objects. Use of classes in JS can be a substitute for types in some cases.
+
+class Parsed_Sequence_Item {
+    constructor(spec) {
+        let index, name, value, length, type;
+
+        if (def(spec.index)) index = spec.index;
+        if (def(spec.name)) name = spec.name;
+        if (def(spec.value)) value = spec.value;
+        if (def(spec.length)) length = spec.length;
+        if (def(spec.type)) type = spec.type;
+
+        ro(this, 'index', () => index);
+        ro(this, 'name', () => name);
+        ro(this, 'value', () => value);
+        ro(this, 'length', () => length);
+        ro(this, 'type', () => type);
+
+
+
+
+    }
+}
+
+class Parsed_Sequence {
+    constructor(spec) {
+        // .arr / .array
+        //  
+
+        let items = [];
+        this.push = (item) => {
+            items.push(item);
+        }
+        ro(this, 'items', () => items);
+    }
+    
 
 }
 
 
 
+
+const parse_bin_with_oo_type_def = (ta_bin, oo_type_def, opts = {}) => {
+    // opts output style.
+
+
+
+    // Parse as array...
+
+    //console.log('parse_bin_with_oo_type_def');
+    //console.log('ta_bin', ta_bin);
+    //console.log('oo_type_def', oo_type_def);
+    //console.log('oo_type_def.name', oo_type_def.name);
+    //throw 'stop';
+    const {sequence} = oo_type_def;
+    //console.log('sequence', sequence);
+
+    // Can use a read_item() function or similar.
+
+    const l = ta_bin.length;
+    //console.log('l', l);
+    //console.log('oo_type_def.name', oo_type_def.name);
+    //console.log('oo_type_def.constructor.name', oo_type_def.constructor.name);
+
+    let byi = 0, i_item = 0, item;
+
+    //const res = [];
+    const res = new Parsed_Sequence({
+        name: oo_type_def.name
+    });
+
+    while (byi < l) {
+        item = sequence[i_item];
+        //console.log('sequence item', item);
+        if (item) {
+            //console.log('item.name', item.name);
+            if (item.name) {
+
+            }
+            if (item.length) {
+                
+
+                // then read the item from the ta.
+                const parsed_bod = parse_BOD(ta_bin, byi, item, undefined, i_item);
+                //console.log('parsed_bod', parsed_bod);
+
+                res.push(parsed_bod);
+                byi += item.length;
+
+            } else {
+                // is it the last item?
+
+                if (i_item < sequence.length - 1) {
+                    console.log('i_item', i_item);
+                    console.log('sequence.length', sequence.length);
+
+                    console.trace();
+                    throw 'NYI';
+                } else {
+                    // do all items after this have a length?
+                    //console.log('i_item', i_item);
+
+                    const l = ta_bin.length - byi;
+                    //console.log('l', l);
+                    res.push(parse_BOD(ta_bin, byi, item, l, i_item));
+                    byi += l;
+
+                    //console.trace();
+                    //throw 'NYI';
+                    
+                }
+
+            }
+        } else {
+            break;
+        }
+        
+
+        i_item++;
+        //throw 'stop';
+    }
+    return res;
+
+    //console.log('res', res);
+
+
+
+    //console.trace();
+    //throw 'stop';
+}
+
+const fn_parse_from_oo_type_def = (oo_type_def) => {
+    //console.log('fn_parse_from_oo_type_def oo_type_def', oo_type_def);
+
+    // function currying basically...
+
+    return (ta_bin) => {
+        return parse_bin_with_oo_type_def(ta_bin, oo_type_def);
+    }
+
+
+}
+
+
+
+/*
+    Systems for parsing the defined binary objects....
+    Generate parsing functions from these definitions.
+    Will have another general purpose FSM parser?
+
+    // A 'state' object...?
+    //  Then if the last one is an array with no length, it's ongoing until the end of the section.
+
+    // keep updating the byi and move through the data.
+
+
+
+
+
+
+*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 module.exports = {
+    fn_parse_from_oo_type_def: fn_parse_from_oo_type_def,
     parse_binary_by_type: parse_binary_by_type,
     read_ui16: read_ui16,
     identify_format: identify_format,
