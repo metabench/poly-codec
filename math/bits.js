@@ -404,8 +404,8 @@ const byte4_all_0s = 0 | 0;
 
 //console.log('Math.MAX_INT32', Math.MAX_INT32);
 
-console.log('byte4_all_1s', byte4_all_1s);
-console.log('float64ToInt32Binary(byte4_all_1s))', float64ToInt32Binary(byte4_all_1s));
+//console.log('byte4_all_1s', byte4_all_1s);
+//console.log('float64ToInt32Binary(byte4_all_1s))', float64ToInt32Binary(byte4_all_1s));
 //console.log('float64ToInt64Binary(byte4_all_1s))', float64ToInt64Binary(byte4_all_1s));
 
 

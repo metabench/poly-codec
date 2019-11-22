@@ -207,6 +207,8 @@ var btoa = btoa || function(buf) {
               }
           }
           
+          // Will use OO HT class, supported by a TA.
+
           function computeHuffmanTbl(nrcodes, std_table){
               var codevalue = 0;
               var pos_in_table = 0;

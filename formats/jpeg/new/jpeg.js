@@ -1,6 +1,24 @@
 
 
 /*
+
+
+20/11/2019 - Also worth approaching this from the other end.
+    Been working on the decoding, made breakthrough (in understanding) DHT structure - still not so clear yet though....
+        see http://archive.is/NDND8
+    Encoding of JPEG data would help in approaching this from the different direction.
+    More work on Color_Space - the phrase 'color space' is used to mean setup of RGB etc and not the size of the image.
+    // Change name? Critical_Image_Data? TA_Image_Data? ta_meta? PB_Meta may work better.
+
+// rgb to cmyk is best in other codebase for the moment.
+
+// ll-math as well?
+
+// but maybe have img-math module under it?
+//  ll-math supporting img-math.
+
+
+
 The whole JPEG structure:
 
 
@@ -49,6 +67,9 @@ const {fn_parse_from_oo_type_def, parse_binary_by_type, read_ui16} = require('..
 
 // ASCII string?
 const {Binary_Object_Segment_Definition, BOD_Ui8, BOD_Ui16, BOD_Ui8_Array, BOD_Ui16_Array, BOD_Ascii_String, BOD_Utf8_String, BOD_Buffer} = require('../../../math/binary-object-definition');
+
+
+const Huffman_Tree = require('../../../math/huffman-tree');
 
 // Simple definition of the parts and arrangements for different files will work well.
 //  Assumption of streaming / raising events for the output rather than buffering.
@@ -215,18 +236,12 @@ class BOD_JPEG_APP0 extends BOD_JPEG_Chunk {
             name: 'buf_thumbnail'
         }));
 
-
         // BOD_Ascii_String
 
         // Be able to give the value of a string as well...
         //  Or read the value.
 
-
-
-
-
     }
-
 }
 
 // JPEG start and JFIF
@@ -240,6 +255,45 @@ class BOD_JPEG_APP0 extends BOD_JPEG_Chunk {
 // Get the outer parsing working first.
 // And this may be it for parsing definitions....
 
+
+/*
+
+
+Lh 
+16 
+
+length:
+2 bytes
+16 bits
+
+17
+1
++ ∑ + t=
+n
+mt c h
+Tc 
+4 bits
+ 0, 1 0
+Th 
+4 bits
+
+0, 1 0-3
+Li 8 0-255
+Vi, j 18 0-255
+
+Later part data gets into the 'Huffman Coding Model'.
+These at least use data from single bytes.
+
+*/
+
+
+
+
+// BOD_Ui4
+//  Be able to read 2 of them in a row at least.
+
+
+
 class BOD_JPEG_DHT extends BOD_JPEG_Chunk {
     constructor(spec = {}) {
         spec.name = 'DHT';
@@ -249,6 +303,20 @@ class BOD_JPEG_DHT extends BOD_JPEG_Chunk {
         seq.push(new BOD_Ui16({
             name: 'length'
         }));
+
+        // Huffman table spec is a bit more complicated.
+        //  See https://www.w3.org/Graphics/JPEG/itu-t81.pdf page 41.
+
+        // 
+
+        // Dividing up the Huffman Table Spec into 2x BOD_Ui4
+        //  Then its values will make sense.
+        // Better to have the 2 separate 4 bit values here defined, and poly-codec will support them too.
+
+
+
+
+
 
         seq.push(new BOD_Ui8({
             name: 'huffman_table_spec'
@@ -264,6 +332,8 @@ class BOD_JPEG_DHT extends BOD_JPEG_Chunk {
         seq.push(new BOD_Buffer({
             name: 'buf_huffman'
         }));
+
+
         // Could have more info about what the buf_huffman's OO type is...
         //  or rather make the oo-huffman using these two variables as input.
         //  describe this in the next level.
@@ -281,6 +351,16 @@ class BOD_JPEG_DHT extends BOD_JPEG_Chunk {
         //  Definitely want to be able to declare (typed) array types, not just binary.
     }
 }
+
+
+
+// Could create a DHT/HT/Huffman object using this parsed object.
+
+// Then need to define further function / input for the OO DHT object.
+//  Or could take the whole block and make it.
+//  Next level processing?
+//   Simple constructor function that references the JPEG block?
+//   Create the object using a JPEG block as the constructor?
 
 class BOD_JPEG_DQT extends BOD_JPEG_Chunk {
     constructor(spec = {}) {
@@ -363,6 +443,7 @@ const scanLength = readUint16(); // skip data length
 class BOD_JPEG_SOI extends BOD_JPEG_Chunk {
     constructor(spec = {}) {
         spec.start = true;
+        spec.name = 'SOI';
         super(spec);
         
         // Then the remainder of the chunk is a binary section for now...?
@@ -382,6 +463,7 @@ class BOD_JPEG_SOI extends BOD_JPEG_Chunk {
 class BOD_JPEG_EOI extends BOD_JPEG_Chunk {
     constructor(spec = {}) {
         spec.end = true;
+        spec.name = 'EOI';
         super(spec);
         
         // Then the remainder of the chunk is a binary section for now...?
@@ -398,13 +480,110 @@ class BOD_JPEG_EOI extends BOD_JPEG_Chunk {
     }
 }
 
+class BOD_JPEG_SOF0 extends BOD_JPEG_Chunk {
+    constructor(spec = {}) {
+        spec.name = 'SOF0';
+        super(spec);
+        const seq = this.sequence;
+
+        seq.push(new BOD_Ui16({
+            name: 'length'
+        }));
+        seq.push(new BOD_Ui8({
+            name: 'precision'
+        }));
+        seq.push(new BOD_Ui16({
+            name: 'height'
+        }));
+        seq.push(new BOD_Ui16({
+            name: 'width'
+        }));
+        seq.push(new BOD_Ui8({
+            name: 'num_components'
+        }));
+
+        // buffer of the rest of the components...
+        seq.push(new BOD_Buffer({
+            name: 'buf_components'
+        }));
+
+
+    }
+
+}
+
+/*
+
+SOF0 (Start Of Frame 0) marker:
+
+
+Field                                    Size                      Description
+
+
+
+Marker Identifier                 2 bytes    0xff, 0xc0 to identify SOF0 marker
+
+
+
+Length                                  2 bytes   This value equals to 8 + components*3 value
+
+
+
+Data precision                      1 byte     This is in bits/sample, usually 8
+
+                                                            (12 and 16 not supported by most software).
+
+
+
+Image height                        2 bytes    This must be > 0
+
+
+
+Image Width                        2 bytes    This must be > 0
+
+
+
+Number of components        1 byte      Usually 1 = grey scaled, 3 = color YcbCr or YIQ
+
+                                                                4 = color CMYK
+
+Each component                   3 bytes     Read each component data of 3 bytes. It contains,
+
+                                                    (component Id(1byte)(1 = Y, 2 = Cb, 3 = Cr, 4 = I, 5 = Q),   
+
+                                                    sampling factors (1byte) (bit 0-3 vertical., 4-7 horizontal.),
+
+                                                    quantization table number (1 byte)).
+
+*/
+
+// Level 0 defs.
+//  Extracts it using basic formats / number types.
 
 const def_jpeg_dht = new BOD_JPEG_DHT();
+
+// deeper type defs?
+//  or object defs as level 1?
+
+
+
+
+
 const def_jpeg_eoi = new BOD_JPEG_EOI();
 const def_jpeg_app0 = new BOD_JPEG_APP0();
 const def_jpeg_dqt = new BOD_JPEG_DQT();
 const def_jpeg_sos = new BOD_JPEG_SOS();
 const def_jpeg_soi = new BOD_JPEG_SOI();
+const def_jpeg_sof0 = new BOD_JPEG_SOF0();
+
+// http://lad.dsc.ufcg.edu.br/multimidia/jpegmarker.pdf
+
+// SOFn
+
+// n denotes different types of DCT and Huffman encoding.
+
+
+
 
 const section_type_defs = {
     'DHT': def_jpeg_dht,
@@ -412,8 +591,18 @@ const section_type_defs = {
     'EOI': def_jpeg_eoi,
     'APP0': def_jpeg_app0,
     'SOS': def_jpeg_sos,
-    'SOI': def_jpeg_soi
+    'SOI': def_jpeg_soi,
+    'SOF0': def_jpeg_sof0
 }
+
+// Direct construction usage, or could add a 'format' string, and have it in a 'value' or 'class' object.
+
+// A function to arrange the constructors...?
+
+const section_class_defs = {
+    'DHT': Huffman_Tree
+}
+
 //console.log('section_type_defs', section_type_defs);
 
 
@@ -426,6 +615,7 @@ const fn_decode_eoi = fn_parse_from_oo_type_def(def_jpeg_dht);
 const fn_decode_app0 = fn_parse_from_oo_type_def(def_jpeg_app0);
 const fn_decode_sos = fn_parse_from_oo_type_def(def_jpeg_sos);
 const fn_decode_soi = fn_parse_from_oo_type_def(def_jpeg_soi);
+const fn_decode_sof0 = fn_parse_from_oo_type_def(def_jpeg_sof0);
 
 const section_decoder_fns = {
     'DHT': fn_decode_dht,
@@ -433,7 +623,8 @@ const section_decoder_fns = {
     'EOI': fn_decode_eoi,
     'APP0': fn_decode_app0,
     'SOS': fn_decode_sos,
-    'SOI': fn_decode_soi
+    'SOI': fn_decode_soi,
+    'SOF0': fn_decode_sof0
 }
 
 
@@ -530,9 +721,7 @@ arr_jpeg_section_names[215] = 'RESET7';
 //   But these definitions don't contain custom functions.
 
 
-
 // Format object containing functions / values to help the PolyCodec?
-
 // An escape-read-copy?
 
 
@@ -669,6 +858,19 @@ const add_jpeg_format_to_polycodec = (polycodec) => {
         polycodec.set_format_section_type_defs('jpeg', section_type_defs);
         // section_decoder_fns
         polycodec.set_format_section_decoder_fns('jpeg', section_decoder_fns);
+
+        // the class defs with a preparation function...?
+        //  .set_format_class_defs
+
+        // set_format_section_classes
+
+        // section_class_defs
+        polycodec.set_format_section_classes('jpeg', section_class_defs);
+
+
+
+
+        // section_class_defs
 
         // set the type def decoders?
         //  have them already...? Set them all at once?
@@ -925,17 +1127,12 @@ const add_jpeg_format_to_polycodec = (polycodec) => {
                     // could use some functions later to lookup / reference Huffman table data.
                     //  may be stored in tree? obj? map?
     
-    
-    
-    
                     // then can extract the individual values at those lengths...
                     //  but worth storing them in the Huffman Table object.
                     //  read the various values at those lengths
                     //   not sure how they would get looked up though.
     
                     // a list of bit sequences at each length.
-                    
-    
     
     
                     // Then should be able to go through the data, reading out the specific bit patterns.
@@ -949,10 +1146,6 @@ const add_jpeg_format_to_polycodec = (polycodec) => {
     
                     // Quite a lot will be possible with the 64bit 'word' or 'sentence' type of bit data
                     //  alongside the length in bits - this could be a 64bit number, or 8 bit using a ta.
-    
-    
-    
-    
     
                     /*
                     each(ta_lengths, (c, i) => {
@@ -979,18 +1172,10 @@ const add_jpeg_format_to_polycodec = (polycodec) => {
                         // An OO Huffman_Table would probably make sense.
                         // Could use a Huffman_Table module, huffman-table on npm?
                     }
-    
                     */
                 }
             });
-
-
         }
-
-
-
-
-        
 
 
         // Don't need the format parts for the moment.
@@ -1072,10 +1257,7 @@ const add_jpeg_format_to_polycodec = (polycodec) => {
 
                 //const plfh = polycodec.get_
 
-            })
-
-
-
+            });
 
             /*
             APP0 marker	2	FF E0

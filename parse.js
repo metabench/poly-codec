@@ -647,10 +647,14 @@ class Parsed_Sequence {
         // .arr / .array
         //  
 
+        let name;
+        if (spec.name) name = spec.name;
+
         let items = [];
         this.push = (item) => {
             items.push(item);
         }
+        ro(this, 'name', () => name);
         ro(this, 'items', () => items);
     }
     
@@ -685,6 +689,8 @@ const parse_bin_with_oo_type_def = (ta_bin, oo_type_def, opts = {}) => {
     let byi = 0, i_item = 0, item;
 
     //const res = [];
+    //console.log('oo_type_def', oo_type_def);
+    console.log('oo_type_def.name', oo_type_def.name);
     const res = new Parsed_Sequence({
         name: oo_type_def.name
     });
@@ -761,8 +767,6 @@ const fn_parse_from_oo_type_def = (oo_type_def) => {
 
 }
 
-
-
 /*
     Systems for parsing the defined binary objects....
     Generate parsing functions from these definitions.
@@ -773,24 +777,7 @@ const fn_parse_from_oo_type_def = (oo_type_def) => {
 
     // keep updating the byi and move through the data.
 
-
-
-
-
-
 */
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

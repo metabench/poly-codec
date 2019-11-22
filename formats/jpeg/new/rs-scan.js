@@ -12,12 +12,12 @@ const {arr_jpeg_section_names, dctZigZag} = require('./consts');
 const rs_scan = (ta_data, state = {}) => {
     // chunk_byte_offset
 
-    console.log('rs_scan state', state);
+    //console.log('rs_scan state', state);
     const {i_chunk, l_chunk, offset_chunk} = state;
     let {current_section_name} = state;
 
 
-    console.log('[i_chunk, l_chunk, offset_chunk]', [i_chunk, l_chunk, offset_chunk]);
+    //console.log('[i_chunk, l_chunk, offset_chunk]', [i_chunk, l_chunk, offset_chunk]);
 
 
 
@@ -210,9 +210,9 @@ const rs_scan = (ta_data, state = {}) => {
             last_byte = current_byte;
         }
 
-        console.log('current_section_name', current_section_name);
+        //console.log('current_section_name', current_section_name);
         if (current_section_name) {
-            console.log('3) last_section_marker', last_section_marker);
+            //console.log('3) last_section_marker', last_section_marker);
             if (last_section_marker) last_section_marker.complete = true;
 
             // ultimate? previous rather than last?

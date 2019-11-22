@@ -157,6 +157,12 @@ class Poly_Codec extends Evented_Class {
             o_formats[format_name].section_decoder_fns = section_decoder_fns;
         }
 
+        this.set_format_section_classes = (format_name, section_classes) => {
+            o_formats[format_name].section_classes = section_classes;
+        }
+
+        // section_classes
+
 
 
 
@@ -188,7 +194,7 @@ class Poly_Codec extends Evented_Class {
         this.decode = (rs) => {
             return obs((next, complete, error) => {
 
-                let using_fn_scan, fn_scan, section_type_defs, section_decoder_fns;
+                let using_fn_scan, fn_scan, section_type_defs, section_decoder_fns, section_classes;
 
                 const data_event = (name, value) => {
                     next({
@@ -226,6 +232,14 @@ class Poly_Codec extends Evented_Class {
                     //  Pre-made?
 
                     section_decoder_fns = o_formats[format_name].section_decoder_fns;
+
+                    section_classes = o_formats[format_name].section_classes || {};
+
+                    
+
+
+                    //
+
 
                     //console.log('section_type_defs', section_type_defs);
                     //console.log('section_decoder_fns', section_decoder_fns);
@@ -391,8 +405,14 @@ class Poly_Codec extends Evented_Class {
 
                 const section_parsed = item => {
 
-                    console.log('section parsed', item);
-                    console.log('item.name', item.name);
+                    //console.log('section parsed', item);
+                    //console.log('item.name', item.name);
+                    //console.log('item.items', item.items);
+                    //console.log('item.items.length', item.items.length);
+
+                    data_event('section-parsed', item);
+
+
 
                 }
 
@@ -600,14 +620,53 @@ class Poly_Codec extends Evented_Class {
                                     //console.log('decoded_section.name', decoded_section.name);
                                     //console.log('decoded_section.items', decoded_section.items);
 
+                                    const log_section_items = () => {
+                                        each(decoded_section.items, item => {
+                                            const {index, name, value, length, type} = item;
+                                            console.log('[index, name, value, length, type]', [index, name, value, length, type]);
+                                            // Raise an item parsed event?
+                                            // item parsed function (first?) within this scope?
+                                        });
+                                    }
+                                    //log_section_items();
+
+                                    const o_decoded = {};
+
                                     each(decoded_section.items, item => {
                                         const {index, name, value, length, type} = item;
-                                        console.log('[index, name, value, length, type]', [index, name, value, length, type]);
-
+                                        //console.log('[index, name, value, length, type]', [index, name, value, length, type]);
+                                        o_decoded[name] = value;
                                         // Raise an item parsed event?
                                         // item parsed function (first?) within this scope?
-
                                     });
+                                    console.log('o_decoded', o_decoded);
+
+                                    // then give o_decoded to the OO class if it's available.
+                                    //  that would be level 1 decoding.
+
+                                    //const cls_section = section_classes[name];
+
+                                    const section_class = section_classes[name];
+
+                                    //console.log('section_classes', section_classes);
+                                    console.log('section_class', section_class);
+
+                                    if (section_class) {
+                                        const oo_class = new section_class({
+                                            format: format_name,
+                                            value: o_decoded
+                                        });
+                                        console.log('oo_class', oo_class);
+
+                                        //throw 'stop';
+                                    } else {
+
+                                    }
+
+
+
+
+                                    
 
                                     // or decoding level 0 complete.
                                     //  level 0 will be done with the spec description + objects.
@@ -622,6 +681,7 @@ class Poly_Codec extends Evented_Class {
                                 } else {
 
                                     console.log('missing section_decoder_fn for ' + name);
+
                                 }
 
 
@@ -721,10 +781,12 @@ class Poly_Codec extends Evented_Class {
                     console.log('end_binary_stream');
 
                     if (using_fn_scan) {
+
+                        console.log('need to stop / make sure end has been noticed.');
                         
 
-                        console.trace();
-                        throw 'stop';
+                        //console.trace();
+                        //throw 'stop';
 
                     } else if (fn_decode) {
                         if (fn_decode_supports_stream_input) {

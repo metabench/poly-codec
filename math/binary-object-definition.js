@@ -17,12 +17,6 @@
 
 // functions to generate a parser function out of these abstractions / defs...
 
-
-
-
-
-
-
 const {def} = require('lang-mini');
 const {prop, ro} = require('obext')();
 

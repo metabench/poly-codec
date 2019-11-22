@@ -256,6 +256,12 @@ const buildComponentData = (frame, component) => {
   return lines;
 }
 
+
+// Will make an optimized Huffman Table class that uses a typed array to hold the data.
+//  May make a new class for that. A graph stored within a Typed Array.
+//   Pointers to different items within the structure.
+
+
 const buildHuffmanTable = (codeLengths, values) => {
   let k = 0, i, j, length = 16;
   const code = [];

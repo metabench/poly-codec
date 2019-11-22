@@ -74,8 +74,8 @@ const run_examples = (gfx_server, erte_ale, westminster_bridge) => obs((next, co
             //const s_in = fnlfs.load('../samples/Snowy Swiss Alps.jpg', {stream: true});
             //const s_in = fnlfs.load('../samples/PARROTS.jpg', {stream: true});
 
-            console.log('s_in', s_in);
-            console.log('s_in.bufferSize', s_in.bufferSize);
+            //console.log('s_in', s_in);
+            //console.log('s_in.bufferSize', s_in.bufferSize);
             // new Encoded_Image_Buffer from the stream...
 
             // Make my own slow stream later...
