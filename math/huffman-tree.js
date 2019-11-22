@@ -206,22 +206,25 @@ class Bit_Range {
 //  As in a node can only have 2 connections: down-left, down-right.
 
 const mask_bools = (...args) => {
-    console.log('args.length', args.length);
-    console.log('args', args);
+    //console.log('args.length', args.length);
+    //console.log('args', args);
 
     let res = 0 | 0;
 
     const l = args.length;
-    let multiple = 1;
+    let multiple = 1 | 0;
     for (let c = 0; c < l; c++) {
         //console.log('args[c] === true * multiple', (args[c] === true ? 0 : 1 ) * multiple);
         //res += args[c] === true ? 0 : multiple;
 
         if (args[c] === true) {
-            res += multiple;
+            //res += multiple;
+            res = res | multiple;
         }
 
-        multiple *= 2;
+        //multiple *= 2;
+        //multiple <<= 1;
+        multiple = multiple << 1;
     }
 
     //console.log('res', res);
@@ -308,11 +311,7 @@ class Ui32BinaryTree {
             if (i_root_node === undefined) {
                 i_root_node = i_next_new_node++;
                 num_nodes++;
-
                 let p = i_root_node * ta_items_per_node;
-                //if (!def(i_parent)) {
-
-                //}
                 const is_root = true;
                 //
                 const has_key = false;
@@ -320,41 +319,13 @@ class Ui32BinaryTree {
                 const has_l_child = false;
                 const has_r_child = false;
                 const has_parent = false;
-                //console.log('i_parent', i_parent);
-                //console.log('has_parent', has_parent);
-
                 const is_leaf = true;
-                // root and lead together to start with.
-
-
-                //throw 'stop';
-
-                // mask, key, value, parent, left, right
-                // mask: is_root, is_leaf, has_key, has_value, has_l_child, has_r_child, has_parent
-
-                // read various values from the mask.
-                // read_mask(value, schema)
-
-                // masking and unmasking functions.
-
-                // m = mask(boolean1, boolean2...)
-
-                //  10 in total there.
-                //   don't need is_root...
-                //   don't need is_leaf???
-                
-                // Can do this with 40 bytes per node, not too large a memory requirement I think, and it will be fast.
-
-                // A masking function will be clearer.
-                //  Can optimize later.
-                //   Can make my own JS inliner / JS->JS compiler.
-
                 const mask = mask_bools(is_root, is_leaf, has_key, has_value, has_l_child, has_r_child, has_parent);
 
-                console.log('[is_root, is_leaf, has_key, has_value, has_l_child, has_r_child, has_parent]', [is_root, is_leaf, has_key, has_value, has_l_child, has_r_child, has_parent]);
+                //console.log('[is_root, is_leaf, has_key, has_value, has_l_child, has_r_child, has_parent]', [is_root, is_leaf, has_key, has_value, has_l_child, has_r_child, has_parent]);
 
                 //const mask = def(value) | (def(left) * 2) | (def(right) * 4);
-                console.log('mask', mask);
+                //console.log('mask', mask);
 
                 //throw 'stop';
 
@@ -386,9 +357,6 @@ class Ui32BinaryTree {
                     p++;
                 }
                 return i_root_node;
-
-
-                
                 //set_node(i_root_node = i_next_new_node++, undefined, undefined, undefined, undefined);
 
                 //num_nodes++;
@@ -409,32 +377,7 @@ class Ui32BinaryTree {
         // set_node_l_child
         // set_node_r_child
 
-        const set_node_mask_bit = (i_node, i_bit, value) => {
-            const p_node = i_node * ta_items_per_node;
-            const p_node_mask = p_node;
-            if (value === 1 || value === true) {
-                ta[p_node_mask] = ta[p_node_mask] | (1 << i_bit);
-            } else {
-                // xor may do this. ^
-                //  but really want to set specific bit to 0.
-                //   think xor is the one.
-
-                // This could be wrong....
-                //  Use an inverse mask with and?
-
-                //console.log('[i_node, i_bit, value]', [i_node, i_bit, value]);
-
-                // XOR maybe isnt the right way.
-                //console.log('1) ta[p_node_mask]', ta[p_node_mask]);
-
-                ta[p_node_mask] = ta[p_node_mask] & (~(1 << i_bit));
-                //console.log('2) ta[p_node_mask]', ta[p_node_mask]);
-                //throw 'stop';
-            }
-            //const i_value = (value === true) ? 1 | 0 : 0 | 0;
-        }
-
-        const get_node_mask_bit = (i_node, i_bit) => ((1 << i_bit) & (ta[i_node * ta_items_per_node])) !== 0
+        
 
         const _get_node_mask_bit = (i_node, i_bit) => {
             const mask_val = ta[i_node * ta_items_per_node];
@@ -458,90 +401,7 @@ class Ui32BinaryTree {
         }
         */
 
-        const get_node_parent = (i_node) => {
-            //console.log('get_node_parent i_node', i_node);
-
-            const has_parent = get_node_mask_bit(i_node, 6);
-            //console.log('has_parent', has_parent);
-
-            if (has_parent) {
-                const p_node = i_node * ta_items_per_node;
-                const p_node_i_parent = p_node + 5; //i_parent as 5
-                return ta[p_node_i_parent];
-            }
-
-            //const p_node = i * ta_items_per_node;
-            //const p_node_i_parent = p_node + 5;
-
-        }
-
-        const get_node_value = (i_node) => {
-            const has_value = get_node_mask_bit(i_node, 3);
-            if (has_value) {
-                const p_node = i_node * ta_items_per_node;
-                const p_node_i_value = p_node + 2;
-                return ta[p_node_i_value];
-            }
-        }
-
-        const get_node_l_child = (i_node) => {
-            const has_l_child = get_node_mask_bit(i_node, 4);
-
-            console.log('[i_node, has_l_child]', [i_node, has_l_child]);
-            if (has_l_child) {
-                const p_node = i_node * ta_items_per_node;
-                const p_node_i_l_child = p_node + 3;
-                //console.log('ta[p_node_i_l_child]', ta[p_node_i_l_child]);
-                return ta[p_node_i_l_child];
-            }
-        }
-        const get_node_r_child = (i_node) => {
-            const has_r_child = get_node_mask_bit(i_node, 5);
-
-            console.log('[i_node, has_r_child]', [i_node, has_r_child]);
-            if (has_r_child) {
-                const p_node = i_node * ta_items_per_node;
-                const p_node_i_r_child = p_node + 4;
-                return ta[p_node_i_r_child];
-            }
-        }
-
-        /*
-
-        const set_node_l_child = (i, i_left) => {
-            const p_node = i * ta_items_per_node;
-            const p_node_l_child = p_node + 3;
-            ta[p_node_l_child] = i_left;
-            set_node_mask_bit(i, 1, false); // is_leaf = false
-            set_node_mask_bit(i, 4, true);  // has_l_child = true
-
-            set_node_parent(i_left, i);
-            //set_node_mask_bit(i_left, 6, true); // Child has a parent
-
-            // then set the has_l_child to true and is_leaf to false.
-
-            // const mask           = mask_bools(is_root, is_leaf, has_key, has_value, has_l_child, has_r_child, has_parent);
-            // need to set node mask / bit values.
-
-            //const change_mask_to_or = mask_bools();
-        }
-        // Parent?
-
-        const set_node_r_child = (i, i_right) => {
-            const p_node = i * ta_items_per_node;
-            const p_node_r_child = p_node + 4;
-            ta[p_node_r_child] = i_right;
-            set_node_mask_bit(i, 1, false); // is_leaf = false
-            set_node_mask_bit(i, 5, true);  // has_r_child = true
-
-            set_node_parent(i_right, i);
-            //set_node_mask_bit(i_right, 6, true); // Child has a parent
-            // then set the has_l_child to true and is_leaf to false.
-            // const mask           = mask_bools(is_root, is_leaf, has_key, has_value, has_l_child, has_r_child, has_parent);
-            // need to set node mask / bit values.
-            //const change_mask_to_or = mask_bools();
-        }
-        */
+        
 
         const node_to_right_of = (i_node) => {
 
@@ -679,12 +539,125 @@ class Ui32BinaryTree {
 
         this.node_to_right_of = node_to_right_of;
 
+
+        
+
+
         const node_has_left_child = i_node => get_node_mask_bit(i_node, 4);
         const node_has_right_child = i_node => get_node_mask_bit(i_node, 5);
+        const node_is_root = i_node => get_node_mask_bit(i_node, 0);
+        const node_is_leaf = i_node => get_node_mask_bit(i_node, 1);
+        const node_has_key = i_node => get_node_mask_bit(i_node, 2);
+        const node_has_value = i_node => get_node_mask_bit(i_node, 3);
+        const node_has_parent = i_node => get_node_mask_bit(i_node, 6);
 
 
+        const set_node_mask_bit = (i_node, i_bit, value) => {
+            const p_node = i_node * ta_items_per_node;
+            const p_node_mask = p_node;
+            if (value === 1 || value === true) {
+                ta[p_node_mask] = ta[p_node_mask] | (1 << i_bit);
+            } else {
+                ta[p_node_mask] = ta[p_node_mask] & (~(1 << i_bit));
+            }
+            //const i_value = (value === true) ? 1 | 0 : 0 | 0;
+        }
+
+        
+
+
+        /*
+        const check_mask_bit_get_ta_item_ui32 = (i_node, i_mask_bit, i_byte_index_in_ta_item) => {
+            //const has_required_bit = ;
+            if (get_node_mask_bit(i_node, i_mask_bit)) {
+                return ta[i_node * ta_items_per_node + i_byte_index_in_ta_item];
+            }
+        }
+        */
+        const get_node_mask_bit = (i_node, i_bit) => ((1 << i_bit) & (ta[i_node * ta_items_per_node])) !== 0
+        const check_mask_bit_get_ta_item_ui32 = (i_node, i_mask_bit, i_byte_index_in_ta_item) => get_node_mask_bit(i_node, i_mask_bit) ? ta[i_node * ta_items_per_node + i_byte_index_in_ta_item] : undefined;
+        const get_node_parent = i_node => check_mask_bit_get_ta_item_ui32(i_node, 6, 5);
+        const get_node_value = i_node => check_mask_bit_get_ta_item_ui32(i_node, 3, 2);
+        const get_node_l_child = i_node => check_mask_bit_get_ta_item_ui32(i_node, 4, 3);
+        const get_node_r_child = i_node => check_mask_bit_get_ta_item_ui32(i_node, 5, 4);
+
+
+        /*
+        const _get_node_parent = (i_node) => {
+            //console.log('get_node_parent i_node', i_node);
+
+            const has_parent = get_node_mask_bit(i_node, 6);
+            //console.log('has_parent', has_parent);
+
+            if (has_parent) {
+                const p_node = i_node * ta_items_per_node;
+                const p_node_i_parent = p_node + 5; //i_parent as 5
+                return ta[p_node_i_parent];
+            }
+
+            //const p_node = i * ta_items_per_node;
+            //const p_node_i_parent = p_node + 5;
+
+        }
+        */
+
+        /*
+
+        const get_node_value = (i_node) => {
+            const has_value = get_node_mask_bit(i_node, 3);
+            if (has_value) {
+                const p_node = i_node * ta_items_per_node;
+                const p_node_i_value = p_node + 2;
+                return ta[p_node_i_value];
+            }
+        }
+
+        const get_node_l_child = (i_node) => {
+            const has_l_child = get_node_mask_bit(i_node, 4);
+
+            //console.log('[i_node, has_l_child]', [i_node, has_l_child]);
+            if (has_l_child) {
+                const p_node = i_node * ta_items_per_node;
+                const p_node_i_l_child = p_node + 3;
+                //console.log('ta[p_node_i_l_child]', ta[p_node_i_l_child]);
+                return ta[p_node_i_l_child];
+            }
+        }
+        const get_node_r_child = (i_node) => {
+            const has_r_child = get_node_mask_bit(i_node, 5);
+
+            //console.log('[i_node, has_r_child]', [i_node, has_r_child]);
+            if (has_r_child) {
+                const p_node = i_node * ta_items_per_node;
+                const p_node_i_r_child = p_node + 4;
+                return ta[p_node_i_r_child];
+            }
+        }
+        */
+
+        // is_left_child_of(o_node.index, o_node.parent)
+
+        const is_left_child_of = (i_node, i_parent) => {
+            if (node_has_left_child(i_parent)) {
+                console.log('hlc');
+                //console.lo
+                return ta[i_parent * ta_items_per_node + 3] === i_node;
+            } else {
+                return false;
+            }
+        }
+        const is_right_child_of = (i_node, i_parent) => {
+            if (node_has_right_child(i_parent)) {
+                return ta[i_parent * ta_items_per_node + 4] === i_node;
+            } else {
+                return false;
+            }
+        }
+
+
+        // Be able to take a value too....
         // left or right...?
-        const create_left_child_node = (i_node) => {
+        const create_left_child_node = (i_node, value) => {
             // need a new id for the child node.
 
             const i_new_child_node = i_next_new_node++;
@@ -694,7 +667,7 @@ class Ui32BinaryTree {
 
             const is_root = false;
             const has_key = false;
-            const has_value = false;
+            const has_value = value !== undefined;
             const has_l_child = false;
             const has_r_child = false;
             const has_parent = true;
@@ -703,6 +676,7 @@ class Ui32BinaryTree {
             const mask = mask_bools(is_root, is_leaf, has_key, has_value, has_l_child, has_r_child, has_parent);
             ta[p] = mask;
             //p += 4;
+            if (has_value) ta[p + 2] = value
             ta[p + 5] = i_node;
 
             
@@ -724,12 +698,9 @@ class Ui32BinaryTree {
             return i_new_child_node;
         }
 
-        const create_right_child_node = (i_node) => {
+        const create_right_child_node = (i_node, value) => {
             // need a new id for the child node.
-
             // test if it already has that child node...?
-
-
 
             const i_new_child_node = i_next_new_node++;
             num_nodes++;
@@ -738,7 +709,7 @@ class Ui32BinaryTree {
 
             const is_root = false;
             const has_key = false;
-            const has_value = false;
+            const has_value = value !== undefined;
             const has_l_child = false;
             const has_r_child = false;
             const has_parent = true;
@@ -747,9 +718,8 @@ class Ui32BinaryTree {
             const mask = mask_bools(is_root, is_leaf, has_key, has_value, has_l_child, has_r_child, has_parent);
             ta[p] = mask;
             //p += 4;
+            if (has_value) ta[p + 2] = value
             ta[p + 5] = i_node;
-
-            
 
             let idx_node = i_node * ta_items_per_node;
             let idx_node_r_child = idx_node + 4;
@@ -778,123 +748,27 @@ class Ui32BinaryTree {
             return i_new_child_node;
         }
 
-        /*
-
-        const set_node = (i, key, value, i_left, i_right, i_parent) => {
-            //console.log('set_node');
-            //console.log('[i, key, value, i_left, i_right, i_parent]', [i, key, value, i_left, i_right, i_parent]);
-            //console.trace();
-            let p = i * ta_items_per_node;
-            //if (!def(i_parent)) {
-
-            //}
-
-            const is_root = !def(i_parent);
-            //
-            const has_key = def(key);
-            const has_value = def(value);
-            const has_l_child = def(i_left);
-            const has_r_child = def(i_right);
-            const has_parent = def(i_parent);
-            //console.log('i_parent', i_parent);
-            //console.log('has_parent', has_parent);
-
-            const is_leaf = !has_l_child && !has_r_child;
-
-            //throw 'stop';
-
-            // mask, key, value, parent, left, right
-            // mask: is_root, is_leaf, has_key, has_value, has_l_child, has_r_child, has_parent
-
-            // read various values from the mask.
-            // read_mask(value, schema)
-
-            // masking and unmasking functions.
-
-            // m = mask(boolean1, boolean2...)
-
-            //  10 in total there.
-            //   don't need is_root...
-            //   don't need is_leaf???
-            
-            // Can do this with 40 bytes per node, not too large a memory requirement I think, and it will be fast.
-
-            // A masking function will be clearer.
-            //  Can optimize later.
-            //   Can make my own JS inliner / JS->JS compiler.
-
-            const mask = mask_bools(is_root, is_leaf, has_key, has_value, has_l_child, has_r_child, has_parent);
-
-            console.log('[is_root, is_leaf, has_key, has_value, has_l_child, has_r_child, has_parent]', [is_root, is_leaf, has_key, has_value, has_l_child, has_r_child, has_parent]);
-
-            //const mask = def(value) | (def(left) * 2) | (def(right) * 4);
-            console.log('mask', mask);
-
-            //throw 'stop';
-
-            ta[p++] = mask;
-
-            if (has_key) {
-                ta[p++] = key;
-            } else {
-                p++;
-            }
-            if (has_value) {
-                ta[p++] = value;
-            } else {
-                p++;
-            }
-            if (has_l_child) {
-                ta[p++] = i_left;
-            } else {
-                p++;
-            }
-            if (has_r_child) {
-                ta[p++] = i_right;
-            } else {
-                p++;
-            }
-            if (has_parent) {
-                ta[p++] = i_parent;
-            } else {
-                p++;
-            }
-            return i;
-        }
-        */
-
         const add_empty_children = (i_node) => {
-
-            //console.log('add_empty_children i_node', i_node);
-            //console.log('1) ta', ta);
-
             const i_l_child = create_left_child_node(i_node);
             const i_r_child = create_right_child_node(i_node);
-
-            /*
-
-            // (i, key, value, i_left, i_right, i_parent)
-            const i_l = set_node(i_next_new_node++, undefined, undefined, undefined, undefined, i_node);
-            set_node_l_child(i_node, i_l);
-            const i_r = set_node(i_next_new_node++, undefined, undefined, undefined, undefined, i_node);
-            set_node_r_child(i_node, i_r);
-
-            console.log('2) ta', ta);
-
-            console.trace();
-            throw 'stop';
-
-            */
         }
         this.add_empty_children = add_empty_children;
 
+        // The key is basically the path through the tree.
+        //  A binary path. Understanding binary trees better now :).
+
+
+        /*
+        inOrder: perform inorder traversal of the Huffman tree with specified root node
+        */
 
         const traverse = (i_start, callback) => {
             // callback on the node itself.
-            console.log('traverse i_start', i_start);
+            //console.log('traverse i_start', i_start);
             const value = get_node_value(i_start);
             const i_lc = get_node_l_child(i_start);
             const i_rc = get_node_r_child(i_start);
+            const i_parent = get_node_parent(i_start);
 
             // And a stop function...?
             let ctu = true;
@@ -906,24 +780,83 @@ class Ui32BinaryTree {
             callback({
                 index: i_start,
                 value: value,
+                parent: i_parent,
                 left_child: i_lc,
                 right_child: i_rc
             }, fn_stop);
             if (ctu) {
-                
-                console.log('i_lc', i_lc);
+                //console.log('i_lc', i_lc);
                 if (i_lc !== undefined) {
                     traverse(i_lc, callback);
                 }
-                
-                console.log('i_rc', i_rc);
+                //console.log('i_rc', i_rc);
                 if (i_rc !== undefined) {
                     traverse(i_rc, callback);
                 }
             }
         }
-
         this.traverse = traverse;
+        const toArray = () => {
+            console.log('toArray()');
+
+            const res_root = [[], []];
+            
+            const map_nodes_by_index = {};
+            const map_arr_res_nodes_by_index = {};
+
+            // An array entry for each node...
+
+            // Nodes will hold values too.
+            //  Will need to use that in the Huffman tree decoding lookups.
+
+            // The key of a node is the path to reach it (so I think).
+
+
+            let current;
+
+            traverse(0, (o_node) => {
+
+                // [value, left_branch, right_branch]
+
+                console.log('o_node', o_node);
+                map_nodes_by_index[o_node.index] = o_node;
+
+                const {value, parent} = o_node;
+                let parent_arr_node;
+                if (parent === undefined) {
+                    // it's the root node
+                    current = res_root;
+                    
+                } else {
+                    //const parent_node = map_nodes_by_index[parent];
+                    current = [value, [], []];
+                    parent_arr_node = map_arr_res_nodes_by_index[o_node.parent];
+
+
+                    // is it on the left or the right of the parent?
+
+                    console.log('[o_node.index, o_node.parent]', o_node.index, o_node.parent);
+
+                    if (is_left_child_of(o_node.index, o_node.parent)) {
+                        parent_arr_node[0] = current;
+                    } else if (is_right_child_of(o_node.index, o_node.parent)) {
+                        parent_arr_node[1] = current;
+                    } else {
+                        console.trace();
+                        throw 'stop';
+                    }
+
+                    //map_arr_res_nodes_by_index[o_node.parent]
+                }
+                map_arr_res_nodes_by_index[o_node.index] = current;
+
+                // lookup the parent array.
+
+            });
+            return res_root;
+        }
+
+        this.toArray = toArray;
 
         const setup_3_node_structure = () => {
             const i_root = create_root_node();
@@ -969,9 +902,6 @@ class Ui32BinaryTree {
         //console.log('ta', ta);
 
         //throw 'End of Ui32BinaryTree constructor';
-
-
-
 
 
     }
@@ -1104,10 +1034,16 @@ inOrder: perform inorder traversal of the Huffman tree with specified root node
 */
 
 
-const build_huffman_tree_jpeg = (ta_lengths, ta_values) => {
+const build_huffman_tree_jpeg = (btree_res, ta_lengths, ta_values) => {
+
+    // Build it into the binary tree.
+    /// btree could have find_leftmost_leaf_without_value
+
+
     const l = ta_lengths.length;
     console.log('build_huffman_tree_jpeg');
-    const res = new Ui32BinaryTree();
+    //const res = new Ui32BinaryTree();
+    const res = btree_res;
     res.setup_3_node_structure();
 
     // let i_leftmost_without_value ...?
@@ -1129,7 +1065,7 @@ const build_huffman_tree_jpeg = (ta_lengths, ta_values) => {
     }
 
     const ta_start_positions = ta_cumulative_lengths;
-    console.log('ta_start_positions', ta_start_positions);
+    //console.log('ta_start_positions', ta_start_positions);
 
     const get_symbols_of_length = (length) => {
         return ta_values.subarray(ta_start_positions[length], ta_start_positions[length] + ta_lengths[length]);
@@ -1142,16 +1078,57 @@ const build_huffman_tree_jpeg = (ta_lengths, ta_values) => {
 
     const num_lengths = ta_lengths.length;
 
+
+    // and the i pointer for the 'leftmost'.
+
+    // I think the codes are the keys which are the positions in the btree. Not sure though.
+
+
+    // find the leftmost without a value?
+
+    
+
+
+
+
     if (num_lengths === 16) {
         console.log('num_lengths', num_lengths);
 
-        let i_current;
+        let num_used_lengths = num_lengths;
+        while (ta_lengths[num_used_lengths - 1] === 0) num_used_lengths--;
 
-        for (let c = 0; c < num_lengths; c++) {
+        console.log('num_used_lengths', num_used_lengths);
+
+        let i_current; // like leftmost?
+
+        for (let c = 0; c < num_used_lengths; c++) {
             const symbol_count = ta_lengths[c];
+            console.log('');
             console.log('symbol_count', symbol_count);
 
+            const bits_length = c + 1;
+            console.log('bits_length', bits_length);
+
             if (symbol_count === 0) {
+
+                // Need to do this 'leftmost' tracking.
+                //  Leftmost without a value I think.
+
+                // Adding empty children when no symbols.
+                //  Clever stuff.
+
+                // find_leftmost_leaf_without_value
+                //  tree traversal with stop.
+
+
+
+
+
+
+
+
+
+                /*
 
                 i_current = res.i_leftmost;
                 console.log('i_current', i_current);
@@ -1165,6 +1142,8 @@ const build_huffman_tree_jpeg = (ta_lengths, ta_values) => {
 
                     console.log('i_current', i_current);
                 }
+
+                */
 
                 /*
 
@@ -1181,7 +1160,7 @@ const build_huffman_tree_jpeg = (ta_lengths, ta_values) => {
 
             } else {
                 const symbols_of_length = get_symbols_of_length(c);
-                console.log('symbols_of_length', symbols_of_length);
+                console.log('symbols_of_length length: ' + c, symbols_of_length);
 
                 // want to have it in array tree form.
 
@@ -1264,76 +1243,103 @@ const build_huffman_tree_jpeg = (ta_lengths, ta_values) => {
 // Could have separate algo to build the HT with JPEG DHT data.
 
 class Huffman_Tree {
+
+    // With binary tree implementation inside.
+
     constructor(spec) {
         //console.log('Huffman_Tree spec', spec);
 
+        // a local btree.
+        const btree = new Ui32BinaryTree();
+
+
+
+
+
+
         if (spec.format) {
             if (spec.format === 'jpeg') {
-                // count the sum...
 
-                const {code_counts, buf_huffman} = spec.value;
-                //console.log('code_counts.length', code_counts.length);
-                //let sum_l_bits = 0;
+                const {value} = spec;
 
-
-                // Number of codes in total
-                let count_codes = 0;
-
-                for (let c = 0; c < 16; c++) {
-                    //sum_l_bits += (code_counts[c]) * (c + 1);
-                    count_codes += code_counts[c];
-                }
-
-                // Could try doing this without the buildHuffmanTable function.
-
-                /*
-                // Using error checking now.
-                console.log('sum_l_bits', sum_l_bits);
-                console.log('buf_huffman.length', buf_huffman.length);
-                console.log('count_codes', count_codes);
-                console.log('buf_huffman.length * 8', buf_huffman.length * 8);
-                */
-
-                if (count_codes === buf_huffman.length) {
-                    // As it should be.
-                    //  Will read these (at first) into an OO TA tree structure.
-                    //  Would also work as a basis for a TA Linked List. Could also hold strings / other values / binary values.
+                if (value) {
+                    const {code_counts, buf_huffman} = value;
+                    //console.log('code_counts.length', code_counts.length);
+                    //let sum_l_bits = 0;
 
 
-                    const use_jpegjs_ht = () => {
-                        const ht = buildHuffmanTable(code_counts, buf_huffman);
-                        console.log('ht', ht);
-                        console.log('ht', JSON.stringify(ht));
+                    // Number of codes in total
+                    let count_codes = 0;
+
+                    for (let c = 0; c < 16; c++) {
+                        //sum_l_bits += (code_counts[c]) * (c + 1);
+                        count_codes += code_counts[c];
                     }
 
+                    // Could try doing this without the buildHuffmanTable function.
 
-                    // Will have my own build Huffman Table
-                    //  or Huffman Tree....
-                    //   Will use fast ta tree access for the moment. Is a small tree anyway.
+                    /*
+                    // Using error checking now.
+                    console.log('sum_l_bits', sum_l_bits);
+                    console.log('buf_huffman.length', buf_huffman.length);
+                    console.log('count_codes', count_codes);
+                    console.log('buf_huffman.length * 8', buf_huffman.length * 8);
+                    */
 
-                    // Worth iterating through the codes here.
-                    //  Reading what data we can get from them where possible.
-                    //   Each of them will be byte codes.
-                    //    Seems a bit difficult. Maybe they are the leaves of the tree? The tree itself is encoded in a neatly compressed way (mostly).
+                    if (count_codes === buf_huffman.length) {
+                        // As it should be.
+                        //  Will read these (at first) into an OO TA tree structure.
+                        //  Would also work as a basis for a TA Linked List. Could also hold strings / other values / binary values.
 
-                    const htree = build_huffman_tree_jpeg(code_counts, buf_huffman);
-                    console.log('htree', htree);
 
-                    //throw 'stop';
-                    //console.log('\n');
+                        const use_jpegjs_ht = () => {
+                            const ht = buildHuffmanTable(code_counts, buf_huffman);
+                            console.log('ht', ht);
+                            console.log('ht', JSON.stringify(ht));
+                        }
 
-                    // And I'll use my own Huffman Tree system.
-                    //  See if I can get my own decode of DHT producing the same results, but using a faster TA system.
 
+                        // Will have my own build Huffman Table
+                        //  or Huffman Tree....
+                        //   Will use fast ta tree access for the moment. Is a small tree anyway.
+
+                        // Worth iterating through the codes here.
+                        //  Reading what data we can get from them where possible.
+                        //   Each of them will be byte codes.
+                        //    Seems a bit difficult. Maybe they are the leaves of the tree? The tree itself is encoded in a neatly compressed way (mostly).
+
+                        //const htree = build_huffman_tree_jpeg(code_counts, buf_huffman);
+
+                        const res_build = build_huffman_tree_jpeg(btree, code_counts, buf_huffman);
+                        console.log('res_build', res_build);
+                        console.log('btree', btree);
+
+                        //throw 'stop';
+                        //console.log('\n');
+
+                        // And I'll use my own Huffman Tree system.
+                        //  See if I can get my own decode of DHT producing the same results, but using a faster TA system.
+
+                    } else {
+                        console.trace();
+                        throw 'stop';
+                    }
                 } else {
                     console.trace();
-                    throw 'stop';
+                    throw 'JSON format HT - Expected spec.value';
                 }
+
+                // count the sum...
+
+                
             } else {
                 console.trace();
                 throw 'Unsupported format: ' + spec.format;
             }
         }
+        ro(this, 'ta', () => btree.ta);
+        ro(this, 'num_nodes', () => btree.num_nodes);
+
         // Want efficient storage of the internal data
 
         // Need to be able to give it the binary JPEG definition of the Huffman Tree / Table?
@@ -1386,13 +1392,7 @@ if (require.main === module) {
 
         write_bit(ui8a, 1, 1);
         console.log('ui8a', ui8a);
-
-
-
-
         // Examples using genuine JPEG Huffman Tree data...?
-
-
     }
     //test_bits();
 
@@ -1410,11 +1410,31 @@ if (require.main === module) {
         // .toJSON function will help.
         //  traverses the tree
 
+        const arr_1_tree = tree1.toArray();
+        console.log('arr_1_tree', arr_1_tree);
+
+
+        //tree1.set('')
+
+        // keys are done as binary traversal?
+        //  continue with HT specifics and then look at generalising implementation, still working for HTs.
+
+
+
+
+        // Set values...
+        //  Add further items?
+
+        // Add items by value?
+        // Both use it for HT reconstruction and should work generally as a binary tree.
+
+
+
 
 
 
     }
-    test_binary_tree();
+    //test_binary_tree();
 
 
     const test_huffman_tree = () => {
@@ -1433,15 +1453,28 @@ if (require.main === module) {
 
 
         const ht = new Huffman_Tree({
-            format: 'jpeg'
+            format: 'jpeg',
+            value: {
+                code_counts: new Uint8Array([
+                    0, 2, 3, 1, 1, 1,
+                    1, 0, 0, 0, 0, 0,
+                    0, 0, 0, 0
+                ]),
+                buf_huffman: new Uint8Array([
+                    2, 3, 0, 1, 4,
+                    5, 6, 7, 8
+                ])
+            }
         });
         console.log('ht', ht);
+        console.log('ht.ta', ht.ta);
+        console.log('ht.num_nodes', ht.num_nodes);
 
         
 
 
     }
-    //test_huffman_tree();
+    test_huffman_tree();
     
 
 
